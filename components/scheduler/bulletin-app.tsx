@@ -97,6 +97,19 @@ function bookingLine(booking: Booking) {
   return `${location} / ${booking.departmentName}`;
 }
 
+function countByLabel<T>(items: T[], getLabel: (item: T) => string) {
+  const counts = new Map<string, number>();
+
+  items.forEach((item) => {
+    const label = getLabel(item);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  });
+
+  return Array.from(counts, ([label, count]) => ({ label, count })).sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label),
+  );
+}
+
 function BulletinHeader({
   eyebrow,
   title,
@@ -364,16 +377,46 @@ export function BulletinApp({
   }
 
   const pastorMetrics = {
-    weekly: weekDays.reduce(
-      (count, day) => count + bookingsForDay(confirmedBookings, day).length,
-      0,
+    weeklyBookings: weekDays.flatMap((day) =>
+      bookingsForDay(confirmedBookings, day),
     ),
-    spacesUsed: new Set(
-      confirmedBookings
-        .map((booking) => booking.spaceId)
-        .filter((spaceId): spaceId is string => Boolean(spaceId)),
+    pendingBookings: bookings
+      .filter((booking) => booking.status === "pending")
+      .sort(byStartTime),
+    upcomingBookings: confirmedBookings
+      .filter((booking) => {
+        const endOfRange = new Date(today);
+        endOfRange.setDate(today.getDate() + 7);
+
+        return (
+          new Date(booking.endAt) >= today &&
+          new Date(booking.startAt) < endOfRange
+        );
+      })
+      .sort(byStartTime)
+      .slice(0, 6),
+  };
+  const pastorDashboard = {
+    activeDepartments: new Set(
+      pastorMetrics.weeklyBookings.map((booking) => booking.departmentId),
     ).size,
-    tonight: bookingsForDay(confirmedBookings, today).length,
+    activityTypes: countByLabel(
+      pastorMetrics.weeklyBookings,
+      (booking) => booking.activityType,
+    ),
+    departments: countByLabel(
+      pastorMetrics.weeklyBookings,
+      (booking) => booking.departmentName,
+    ).slice(0, 6),
+    spaces: spaces.map((space) => ({
+      label: space.name,
+      count: pastorMetrics.weeklyBookings.filter(
+        (booking) => booking.spaceId === space.id,
+      ).length,
+    })),
+    today: bookingsForDay(confirmedBookings, today),
+    weekly: pastorMetrics.weeklyBookings.length,
+    pending: pastorMetrics.pendingBookings.length,
   };
 
   if (screen === "menu") {
@@ -670,23 +713,90 @@ export function BulletinApp({
           />
           <section className="bulletin-metrics">
             <div>
-              <strong>{pastorMetrics.weekly}</strong>
+              <strong>{pastorDashboard.weekly}</strong>
               <span>This week</span>
             </div>
             <div>
-              <strong>{pastorMetrics.spacesUsed}</strong>
-              <span>Spaces used</span>
+              <strong>{pastorDashboard.pending}</strong>
+              <span>Pending</span>
             </div>
             <div>
-              <strong>{pastorMetrics.tonight}</strong>
+              <strong>{pastorDashboard.today.length}</strong>
               <span>Today</span>
             </div>
+            <div>
+              <strong>{pastorDashboard.activeDepartments}</strong>
+              <span>Active departments</span>
+            </div>
           </section>
+
+          <section className="bulletin-dashboard-section">
+            <h2>Pending attention</h2>
+            {pastorMetrics.pendingBookings.length === 0 ? (
+              <p className="bulletin-empty">No pending activities.</p>
+            ) : (
+              pastorMetrics.pendingBookings.slice(0, 5).map((booking) => (
+                <EventItem booking={booking} key={booking.id} />
+              ))
+            )}
+          </section>
+
+          <section className="bulletin-dashboard-section">
+            <h2>Upcoming 7 days</h2>
+            {pastorMetrics.upcomingBookings.length === 0 ? (
+              <p className="bulletin-empty">No confirmed upcoming activities.</p>
+            ) : (
+              pastorMetrics.upcomingBookings.map((booking) => (
+                <EventItem booking={booking} key={booking.id} />
+              ))
+            )}
+          </section>
+
+          <section className="bulletin-dashboard-grid">
+            <div className="bulletin-dashboard-section">
+              <h2>Space usage</h2>
+              {pastorDashboard.spaces.map((item) => (
+                <div className="bulletin-stat-row" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.count}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="bulletin-dashboard-section">
+              <h2>Activity mix</h2>
+              {pastorDashboard.activityTypes.length === 0 ? (
+                <p className="bulletin-empty compact">No activity types yet.</p>
+              ) : (
+                pastorDashboard.activityTypes.map((item) => (
+                  <div className="bulletin-stat-row" key={item.label}>
+                    <span>{item.label}</span>
+                    <strong>{item.count}</strong>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="bulletin-dashboard-section">
+            <h2>Department activity this week</h2>
+            {pastorDashboard.departments.length === 0 ? (
+              <p className="bulletin-empty">No active departments this week.</p>
+            ) : (
+              pastorDashboard.departments.map((item) => (
+                <div className="bulletin-stat-row" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.count}</strong>
+                </div>
+              ))
+            )}
+          </section>
+
           <div className="bulletin-title-rule">Today</div>
-          {bookingsForDay(confirmedBookings, today).length === 0 ? (
+          {pastorDashboard.today.length === 0 ? (
             <p className="bulletin-empty">No confirmed activities today.</p>
           ) : (
-            bookingsForDay(confirmedBookings, today).map((booking) => (
+            pastorDashboard.today.map((booking) => (
               <EventItem booking={booking} key={booking.id} />
             ))
           )}
