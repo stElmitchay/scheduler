@@ -173,6 +173,11 @@ select:focus-visible {
   background: #fff1f2;
 }
 
+.bulletin-event-pending {
+  border-color: #8b6f46;
+  background: #f4ead8;
+}
+
 .bulletin-event time {
   display: block;
   color: #7c5616;
@@ -184,6 +189,10 @@ select:focus-visible {
 
 .bulletin-event-cancelled time {
   color: var(--rose);
+}
+
+.bulletin-event-pending time {
+  color: #8b6f46;
 }
 
 .bulletin-event h3 {
@@ -469,6 +478,23 @@ select:focus-visible {
   padding: 0 12px;
 }
 
+.bulletin-form .bulletin-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.bulletin-form .bulletin-check input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--green-dark);
+}
+
 .bulletin-form-grid {
   display: grid;
   gap: 13px;
@@ -505,9 +531,38 @@ select:focus-visible {
   font-size: 13px;
 }
 
+.bulletin-status-badge {
+  display: inline-block;
+  margin-top: 8px;
+  border: 1px solid var(--rule);
+  background: #fff7e6;
+  color: var(--muted);
+  padding: 4px 7px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bulletin-status-badge.confirmed {
+  border-color: #8ccab4;
+  color: var(--green-dark);
+}
+
+.bulletin-status-badge.pending {
+  border-color: #d7b66e;
+  color: #7c5616;
+}
+
+.bulletin-status-badge.cancelled {
+  border-color: #fecdd3;
+  color: var(--rose);
+}
+
 .bulletin-row-actions {
   display: flex;
   gap: 7px;
+  flex-wrap: wrap;
 }
 
 .bulletin-row-actions form {
@@ -517,6 +572,10 @@ select:focus-visible {
 .bulletin-row-actions button:last-child {
   border-color: #fecdd3;
   color: var(--rose);
+}
+
+.bulletin-row-actions button:disabled {
+  opacity: 0.55;
 }
 
 .bulletin-metrics {

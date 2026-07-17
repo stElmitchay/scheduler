@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   cancelBookingAction,
+  confirmBookingAction,
   unlockAccessAction,
   type FormActionState,
 } from "@/app/actions";
@@ -92,7 +93,8 @@ function bookingsForDay(bookings: Booking[], day: Date, spaceFilter: SpaceFilter
 }
 
 function bookingLine(booking: Booking) {
-  return `${booking.spaceName} / ${booking.departmentName}`;
+  const location = booking.spaceId ? booking.spaceName : "No church space";
+  return `${location} / ${booking.departmentName}`;
 }
 
 function BulletinHeader({
@@ -136,13 +138,17 @@ function EventItem({ booking }: { booking: Booking }) {
   return (
     <article
       className={
-        booking.status === "cancelled"
+        booking.status === "pending"
+          ? "bulletin-event bulletin-event-pending"
+          : booking.status === "cancelled"
           ? "bulletin-event bulletin-event-cancelled"
           : "bulletin-event"
       }
     >
       <time>
-        {booking.status === "cancelled"
+        {booking.status === "pending"
+          ? "Pending"
+          : booking.status === "cancelled"
           ? "Cancelled"
           : `${formatTime(booking.startAt)} - ${formatTime(booking.endAt)}`}
       </time>
@@ -172,6 +178,8 @@ export function BulletinApp({
   const [accessMessage, setAccessMessage] = useState("");
   const [accessMessageIsError, setAccessMessageIsError] = useState(false);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const [calendarNotice, setCalendarNotice] = useState("");
+  const [manageNotice, setManageNotice] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [protectedTarget, setProtectedTarget] = useState<ProtectedTarget>("add");
   const pendingCode = useRef("");
@@ -180,28 +188,36 @@ export function BulletinApp({
     cancelBookingAction,
     initialCancelState,
   );
+  const [confirmState, confirmAction, confirmPending] = useActionState(
+    confirmBookingAction,
+    initialCancelState,
+  );
 
   const confirmedBookings = useMemo(
     () => bookings.filter((booking) => booking.status === "confirmed"),
     [bookings],
   );
+  const publicBookings = useMemo(
+    () => bookings.filter((booking) => booking.status !== "pending"),
+    [bookings],
+  );
   const weekDays = useMemo(() => getWeekRange(today), [today]);
   const monthDays = useMemo(() => buildMonthGrid(monthCursor), [monthCursor]);
-  const selectedBookings = bookingsForDay(bookings, selectedDate, spaceFilter);
+  const selectedBookings = bookingsForDay(publicBookings, selectedDate, spaceFilter);
 
   const editableBookings = useMemo(() => {
     if (!activeAccess) {
       return [];
     }
 
-    return confirmedBookings.filter((booking) => {
+    return bookings.filter((booking) => {
       if (activeAccess.kind === "pastor") {
         return true;
       }
 
       return booking.departmentId === activeAccess.departmentId;
     });
-  }, [activeAccess, confirmedBookings]);
+  }, [activeAccess, bookings]);
 
   const editingBooking = editableBookings.find(
     (booking) => booking.id === editingId,
@@ -318,12 +334,35 @@ export function BulletinApp({
     setEditingId(null);
   }
 
+  function handleFormSaved(state: FormActionState) {
+    if (state.startAt) {
+      const savedDate = new Date(state.startAt);
+      setSelectedDate(savedDate);
+      setMonthCursor(savedDate);
+    }
+
+    setEditingId(null);
+
+    if (state.status === "pending") {
+      setManageNotice(state.message);
+      setScreen("manage");
+      return;
+    }
+
+    setCalendarNotice(state.message);
+    setScreen("calendar");
+  }
+
   const pastorMetrics = {
     weekly: weekDays.reduce(
       (count, day) => count + bookingsForDay(confirmedBookings, day).length,
       0,
     ),
-    spacesUsed: new Set(confirmedBookings.map((booking) => booking.spaceId)).size,
+    spacesUsed: new Set(
+      confirmedBookings
+        .map((booking) => booking.spaceId)
+        .filter((spaceId): spaceId is string => Boolean(spaceId)),
+    ).size,
     tonight: bookingsForDay(confirmedBookings, today).length,
   };
 
@@ -335,15 +374,15 @@ export function BulletinApp({
           <nav className="bulletin-menu-panel" aria-label="Scheduler menu">
             <button type="button" onClick={() => openProtected("add")}>
               <span>
-                <strong>Add booking</strong>
-                <small>Department or pastor code required</small>
+                <strong>Add activity</strong>
+                <small>Add a space booking or church activity</small>
               </span>
               <b>+</b>
             </button>
             <button type="button" onClick={() => openProtected("manage")}>
               <span>
-                <strong>Manage bookings</strong>
-                <small>Edit or cancel bookings you own</small>
+                <strong>Manage activities</strong>
+                <small>Edit, confirm, or cancel what you own</small>
               </span>
               <b>›</b>
             </button>
@@ -403,7 +442,7 @@ export function BulletinApp({
               className={spaceFilter === "all" ? "active" : ""}
               onClick={() => setSpaceFilter("all")}
             >
-              All spaces
+              All activities
             </button>
             {spaces.map((space) => (
               <button
@@ -424,7 +463,7 @@ export function BulletinApp({
               </div>
             ))}
             {monthDays.map((day) => {
-              const dayBookings = bookingsForDay(bookings, day, spaceFilter);
+              const dayBookings = bookingsForDay(publicBookings, day, spaceFilter);
               const isSelected = isSameDate(day, selectedDate);
               const isOutsideMonth = day.getMonth() !== monthCursor.getMonth();
 
@@ -455,8 +494,11 @@ export function BulletinApp({
 
           <section className="bulletin-section">
             <h2>{formatDayHeading(selectedDate)}</h2>
+            {calendarNotice ? (
+              <p className="bulletin-message">{calendarNotice}</p>
+            ) : null}
             {selectedBookings.length === 0 ? (
-              <p className="bulletin-empty">No bookings for this date.</p>
+              <p className="bulletin-empty">No activities for this date.</p>
             ) : (
               selectedBookings.map((booking) => (
                 <EventItem booking={booking} key={booking.id} />
@@ -478,7 +520,7 @@ export function BulletinApp({
                 ? "Branch pastor"
                 : activeAccess.departmentName
             }
-            title={editingBooking ? "Edit booking" : "Add booking"}
+            title={editingBooking ? "Edit activity" : "Add activity"}
             onMenu={() => setScreen("menu")}
           />
           <BookingForm
@@ -486,6 +528,7 @@ export function BulletinApp({
             accessCode={activeCode}
             booking={editingBooking}
             departments={departments}
+            onSaved={handleFormSaved}
             spaces={spaces}
           />
           {editingBooking ? (
@@ -518,9 +561,12 @@ export function BulletinApp({
             title="Manage"
             onMenu={() => setScreen("menu")}
           />
-          <div className="bulletin-title-rule">Editable bookings</div>
+          <div className="bulletin-title-rule">Editable activities</div>
+          {manageNotice ? (
+            <p className="bulletin-message">{manageNotice}</p>
+          ) : null}
           {editableBookings.length === 0 ? (
-            <p className="bulletin-empty">No editable bookings.</p>
+            <p className="bulletin-empty">No editable activities.</p>
           ) : (
             <section className="bulletin-manage-list">
               {editableBookings.map((booking) => (
@@ -528,23 +574,40 @@ export function BulletinApp({
                   <div>
                     <h3>{booking.activityName}</h3>
                     <p>
-                      {formatDateTime(booking.startAt)} / {booking.spaceName}
+                      {formatDateTime(booking.startAt)} / {bookingLine(booking)}
                     </p>
+                    <span className={`bulletin-status-badge ${booking.status}`}>
+                      {booking.status}
+                    </span>
                   </div>
                   <div className="bulletin-row-actions">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(booking.id);
-                        setScreen("add");
-                      }}
-                    >
-                      Edit
-                    </button>
+                    {booking.status !== "cancelled" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(booking.id);
+                          setScreen("add");
+                        }}
+                      >
+                        Edit
+                      </button>
+                    ) : null}
+                    {booking.status === "pending" ? (
+                      <form action={confirmAction}>
+                        <input type="hidden" name="accessCode" value={activeCode} />
+                        <input type="hidden" name="bookingId" value={booking.id} />
+                        <button type="submit" disabled={confirmPending}>
+                          Confirm
+                        </button>
+                      </form>
+                    ) : null}
                     <form action={cancelAction}>
                       <input type="hidden" name="accessCode" value={activeCode} />
                       <input type="hidden" name="bookingId" value={booking.id} />
-                      <button type="submit" disabled={cancelPending}>
+                      <button
+                        type="submit"
+                        disabled={cancelPending || booking.status === "cancelled"}
+                      >
                         Cancel
                       </button>
                     </form>
@@ -562,6 +625,15 @@ export function BulletinApp({
               {cancelState.message}
             </p>
           ) : null}
+          {confirmState.message ? (
+            <p
+              className={
+                confirmState.ok ? "bulletin-message" : "bulletin-message error"
+              }
+            >
+              {confirmState.message}
+            </p>
+          ) : null}
           <button
             type="button"
             className="bulletin-primary"
@@ -570,7 +642,7 @@ export function BulletinApp({
               setScreen("add");
             }}
           >
-            Add another booking
+            Add another activity
           </button>
         </div>
       </main>
@@ -602,7 +674,7 @@ export function BulletinApp({
           </section>
           <div className="bulletin-title-rule">Today</div>
           {bookingsForDay(confirmedBookings, today).length === 0 ? (
-            <p className="bulletin-empty">No confirmed bookings today.</p>
+            <p className="bulletin-empty">No confirmed activities today.</p>
           ) : (
             bookingsForDay(confirmedBookings, today).map((booking) => (
               <EventItem booking={booking} key={booking.id} />
@@ -624,13 +696,13 @@ export function BulletinApp({
         <div className="bulletin-title-rule">This week at Kharis Freetown</div>
         <section className="bulletin-week-list">
           {weekDays.map((day) => {
-            const dayBookings = bookingsForDay(bookings, day);
+            const dayBookings = bookingsForDay(publicBookings, day);
 
             return (
               <div key={formatDateKey(day)} className="bulletin-day-group">
                 <h2>{formatShortDay(day)}</h2>
                 {dayBookings.length === 0 ? (
-                  <p className="bulletin-empty compact">No bookings.</p>
+                  <p className="bulletin-empty compact">No activities.</p>
                 ) : (
                   dayBookings.map((booking) => (
                     <EventItem booking={booking} key={booking.id} />

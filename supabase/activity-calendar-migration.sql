@@ -1,62 +1,7 @@
-create extension if not exists "pgcrypto";
-create extension if not exists "btree_gist";
+-- Run this on the existing Supabase project before deploying the activity-calendar code.
+-- This script only alters the existing bookings model and seeds default services.
 
-do $$
-begin
-  if not exists (select 1 from pg_type where typname = 'booking_status') then
-    create type booking_status as enum ('confirmed', 'pending', 'cancelled');
-  end if;
-end $$;
-
-alter type booking_status add value if not exists 'pending';
-
-create table if not exists public.spaces (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.departments (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  access_code_hash text not null unique,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.app_settings (
-  id boolean primary key default true,
-  pastor_access_code_hash text not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint app_settings_single_row check (id = true)
-);
-
-create table if not exists public.bookings (
-  id uuid primary key default gen_random_uuid(),
-  department_id uuid not null references public.departments(id),
-  space_id uuid references public.spaces(id),
-  activity_type text not null default 'Meeting',
-  activity_name text not null,
-  start_at timestamptz not null,
-  end_at timestamptz not null,
-  status booking_status not null default 'confirmed',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint bookings_activity_name_not_blank check (length(trim(activity_name)) > 0),
-  constraint bookings_activity_type_valid check (
-    activity_type in (
-      'Service',
-      'Rehearsal',
-      'Prayer',
-      'Cleaning',
-      'Meeting',
-      'Evangelism',
-      'Social',
-      'Other'
-    )
-  ),
-  constraint bookings_end_after_start check (end_at > start_at)
-);
+alter type public.booking_status add value if not exists 'pending';
 
 alter table public.bookings
   alter column space_id drop not null;
@@ -92,17 +37,8 @@ alter table public.bookings
   )
   where (status = 'confirmed' and space_id is not null);
 
-create index if not exists bookings_start_at_idx on public.bookings (start_at);
 create index if not exists bookings_status_idx on public.bookings (status);
-create index if not exists bookings_department_id_idx on public.bookings (department_id);
 create index if not exists bookings_space_id_idx on public.bookings (space_id);
-
-insert into public.spaces (name)
-values
-  ('Main Auditorium'),
-  ('Second Floor Room'),
-  ('Balcony')
-on conflict (name) do nothing;
 
 with service_settings as (
   select
@@ -165,9 +101,12 @@ where not exists (
   where bookings.activity_name = service_occurrences.activity_name
     and bookings.start_at = service_occurrences.start_at
     and bookings.space_id = service_occurrences.space_id
+)
+and not exists (
+  select 1
+  from public.bookings
+  where bookings.status = 'confirmed'
+    and bookings.space_id = service_occurrences.space_id
+    and tstzrange(bookings.start_at, bookings.end_at, '[)')
+      && tstzrange(service_occurrences.start_at, service_occurrences.end_at, '[)')
 );
-
-alter table public.spaces enable row level security;
-alter table public.departments enable row level security;
-alter table public.app_settings enable row level security;
-alter table public.bookings enable row level security;

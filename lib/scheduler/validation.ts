@@ -1,12 +1,21 @@
-import type { BookingFormInput, ValidationResult } from "./types";
+import {
+  activityTypeAllowsOptionalSpace,
+  activityTypes,
+  type BookingFormInput,
+  type ValidationResult,
+} from "./types";
 
 export function validateBookingInput(input: BookingFormInput): ValidationResult {
   if (!input.accessCode.trim()) {
     return { ok: false, message: "Access code is required." };
   }
 
-  if (!input.spaceId) {
-    return { ok: false, message: "Space is required." };
+  if (!activityTypes.includes(input.activityType)) {
+    return { ok: false, message: "Activity type is required." };
+  }
+
+  if (!activityTypeAllowsOptionalSpace(input.activityType) && !input.spaceId) {
+    return { ok: false, message: "Space is required for this activity type." };
   }
 
   if (!input.activityName.trim()) {

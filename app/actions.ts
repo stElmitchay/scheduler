@@ -3,15 +3,23 @@
 import { revalidatePath } from "next/cache";
 import {
   cancelBooking,
+  confirmBooking,
   createBooking,
   resolveAccessCode,
   updateBooking,
 } from "@/lib/scheduler/data";
-import type { AccessContext, BookingFormInput } from "@/lib/scheduler/types";
+import type {
+  AccessContext,
+  ActivityType,
+  BookingFormInput,
+  BookingStatus,
+} from "@/lib/scheduler/types";
 
 export type FormActionState = {
   ok: boolean;
   message: string;
+  startAt?: string;
+  status?: BookingStatus;
 };
 
 export type AccessActionState =
@@ -42,9 +50,11 @@ function readBookingInput(formData: FormData): BookingFormInput {
     departmentId: value(formData, "departmentId") || undefined,
     bookingId: value(formData, "bookingId") || undefined,
     spaceId: value(formData, "spaceId"),
+    activityType: value(formData, "activityType") as ActivityType,
     activityName: value(formData, "activityName"),
     startAt: value(formData, "startAt"),
     endAt: value(formData, "endAt"),
+    repeatWeekly: value(formData, "repeatWeekly") === "on",
   };
 }
 
@@ -120,6 +130,26 @@ export async function cancelBookingAction(
   }
 
   const result = await cancelBooking(accessCode, bookingId);
+
+  if (result.ok) {
+    revalidatePath("/");
+  }
+
+  return result;
+}
+
+export async function confirmBookingAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const accessCode = value(formData, "accessCode");
+  const bookingId = value(formData, "bookingId");
+
+  if (!accessCode || !bookingId) {
+    return initialError;
+  }
+
+  const result = await confirmBooking(accessCode, bookingId);
 
   if (result.ok) {
     revalidatePath("/");

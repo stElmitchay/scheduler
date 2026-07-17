@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 import {
   createBookingAction,
   updateBookingAction,
@@ -8,9 +9,14 @@ import {
 } from "@/app/actions";
 import type {
   AccessContext,
+  ActivityType,
   Booking,
   Department,
   Space,
+} from "@/lib/scheduler/types";
+import {
+  activityTypeAllowsOptionalSpace,
+  activityTypes,
 } from "@/lib/scheduler/types";
 
 const initialState: FormActionState = { ok: false, message: "" };
@@ -40,17 +46,31 @@ export function BookingForm({
   accessCode,
   booking,
   departments,
+  onSaved,
   spaces,
 }: {
   access: AccessContext;
   accessCode: string;
   booking?: Booking;
   departments: Department[];
+  onSaved?: (state: FormActionState) => void;
   spaces: Space[];
 }) {
+  const router = useRouter();
   const action = booking ? updateBookingAction : createBookingAction;
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [selectedActivityType, setSelectedActivityType] = useState<ActivityType>(
+    booking?.activityType ?? "Meeting",
+  );
   const showDepartmentPicker = access.kind === "pastor";
+  const spaceIsOptional = activityTypeAllowsOptionalSpace(selectedActivityType);
+
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+      onSaved?.(state);
+    }
+  }, [onSaved, router, state]);
 
   return (
     <form
@@ -88,7 +108,7 @@ export function BookingForm({
       ) : null}
 
       <label>
-        Activity
+        Activity name
         <input
           name="activityName"
           defaultValue={booking?.activityName ?? ""}
@@ -97,13 +117,33 @@ export function BookingForm({
       </label>
 
       <label>
-        Space
+        Activity type
+        <select
+          name="activityType"
+          value={selectedActivityType}
+          onChange={(event) =>
+            setSelectedActivityType(event.target.value as ActivityType)
+          }
+          required
+        >
+          {activityTypes.map((activityType) => (
+            <option key={activityType} value={activityType}>
+              {activityType}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label>
+        {spaceIsOptional ? "Space (optional)" : "Space"}
         <select
           name="spaceId"
           defaultValue={booking?.spaceId ?? ""}
-          required
+          required={!spaceIsOptional}
         >
-          <option value="">Select space</option>
+          <option value="">
+            {spaceIsOptional ? "No church space needed" : "Select space"}
+          </option>
           {spaces.map((space) => (
             <option key={space.id} value={space.id}>
               {space.name}
@@ -133,6 +173,13 @@ export function BookingForm({
         </label>
       </div>
 
+      {!booking ? (
+        <label className="bulletin-check">
+          <input name="repeatWeekly" type="checkbox" />
+          <span>Repeat weekly for the next 12 weeks</span>
+        </label>
+      ) : null}
+
       {state.message ? (
         <p
           className={
@@ -148,7 +195,7 @@ export function BookingForm({
         disabled={pending}
         className="bulletin-primary"
       >
-        {pending ? "Saving..." : booking ? "Update booking" : "Create booking"}
+        {pending ? "Saving..." : booking ? "Update activity" : "Create activity"}
       </button>
     </form>
   );
