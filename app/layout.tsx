@@ -12,9 +12,32 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
+
 export const metadata: Metadata = {
-  title: "Kharis Church Scheduler",
-  description: "Shared scheduling and booking calendar for Kharis Church.",
+  metadataBase: new URL(siteUrl),
+  title: "Kharis Church Freetown Scheduler",
+  description:
+    "Shared scheduling and booking calendar for Kharis Church Freetown.",
+  openGraph: {
+    title: "Kharis Church Freetown Scheduler",
+    description:
+      "Shared scheduling and booking calendar for Kharis Church Freetown.",
+    siteName: "Kharis Church Freetown",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kharis Church Freetown Scheduler",
+    description:
+      "Shared scheduling and booking calendar for Kharis Church Freetown.",
+  },
 };
 
 export default function RootLayout({
