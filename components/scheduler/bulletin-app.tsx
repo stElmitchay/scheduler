@@ -738,39 +738,6 @@ export function BulletinApp({
             </div>
           </section>
 
-          <section className="bulletin-dashboard-grid">
-            <div className="bulletin-dashboard-section">
-              <h2>Space usage</h2>
-              {pastorDashboard.spaces.map((item) => (
-                <div className="bulletin-usage-row" key={item.label}>
-                  <div>
-                    <span>{item.label}</span>
-                    <strong>{item.count}</strong>
-                  </div>
-                  <i>
-                    <b style={{ width: `${(item.count / maxSpaceUse) * 100}%` }} />
-                  </i>
-                </div>
-              ))}
-            </div>
-
-            <div className="bulletin-dashboard-section">
-              <h2>Activity mix</h2>
-              {pastorDashboard.activityTypes.length === 0 ? (
-                <p className="bulletin-empty compact">No activity types yet.</p>
-              ) : (
-                <div className="bulletin-chip-grid">
-                  {pastorDashboard.activityTypes.map((item) => (
-                    <span className="bulletin-insight-chip" key={item.label}>
-                      <strong>{item.count}</strong>
-                      {item.label}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
           <section className="bulletin-dashboard-section">
             <h2>Department activity this week</h2>
             {pastorDashboard.departments.length === 0 ? (
@@ -794,6 +761,39 @@ export function BulletinApp({
                 ))}
               </div>
             )}
+          </section>
+
+          <section className="bulletin-dashboard-grid">
+            <div className="bulletin-dashboard-section">
+              <h2>Activity mix</h2>
+              {pastorDashboard.activityTypes.length === 0 ? (
+                <p className="bulletin-empty compact">No activity types yet.</p>
+              ) : (
+                <div className="bulletin-chip-grid">
+                  {pastorDashboard.activityTypes.map((item) => (
+                    <span className="bulletin-insight-chip" key={item.label}>
+                      <strong>{item.count}</strong>
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bulletin-dashboard-section">
+              <h2>Space usage</h2>
+              {pastorDashboard.spaces.map((item) => (
+                <div className="bulletin-usage-row" key={item.label}>
+                  <div>
+                    <span>{item.label}</span>
+                    <strong>{item.count}</strong>
+                  </div>
+                  <i>
+                    <b style={{ width: `${(item.count / maxSpaceUse) * 100}%` }} />
+                  </i>
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className="bulletin-dashboard-grid">
