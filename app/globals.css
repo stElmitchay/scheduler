@@ -65,7 +65,7 @@ select:focus-visible {
   border: 0;
   background: transparent;
   box-shadow: none;
-  padding: 22px 18px 34px;
+  padding: 28px 22px 44px;
 }
 
 .bulletin-shell-wide {
@@ -579,14 +579,14 @@ select:focus-visible {
 .bulletin-metrics {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin: 22px 0;
+  gap: 12px;
+  margin: 28px 0 30px;
 }
 
 .bulletin-metrics div {
   border-top: 2px solid var(--ink);
   border-bottom: 1px solid var(--rule);
-  padding: 10px 0;
+  padding: 13px 0 12px;
 }
 
 .bulletin-metrics strong {
@@ -624,15 +624,15 @@ select:focus-visible {
 
 .bulletin-dashboard-grid {
   display: grid;
-  gap: 14px;
+  gap: 20px;
 }
 
 .bulletin-dashboard-section {
-  margin-top: 18px;
+  margin-top: 24px;
 }
 
 .bulletin-dashboard-section h2 {
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   color: #5b5144;
   font-size: 12px;
   font-weight: 900;
@@ -670,7 +670,7 @@ select:focus-visible {
 .bulletin-usage-row,
 .bulletin-department-row {
   border-bottom: 1px solid var(--rule);
-  padding: 9px 0;
+  padding: 12px 0;
 }
 
 .bulletin-usage-row:first-of-type,
@@ -682,7 +682,7 @@ select:focus-visible {
 .bulletin-department-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 10px;
+  gap: 14px;
   align-items: center;
 }
 
@@ -704,8 +704,8 @@ select:focus-visible {
 .bulletin-usage-row i,
 .bulletin-department-row i {
   display: block;
-  height: 7px;
-  margin-top: 7px;
+  height: 8px;
+  margin-top: 9px;
   background: #eadcc4;
 }
 
@@ -721,17 +721,17 @@ select:focus-visible {
 .bulletin-department-grid,
 .bulletin-compact-events {
   display: grid;
-  gap: 7px;
+  gap: 10px;
 }
 
 .bulletin-insight-chip {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   border: 1px solid var(--rule);
   background: #fff7e6;
-  padding: 8px 9px;
+  padding: 10px 11px;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.15;
@@ -745,7 +745,7 @@ select:focus-visible {
 }
 
 .bulletin-dashboard-details {
-  margin-top: 18px;
+  margin-top: 24px;
   border-top: 2px solid var(--ink);
   border-bottom: 1px solid var(--rule);
   padding: 0;
@@ -754,9 +754,9 @@ select:focus-visible {
 .bulletin-dashboard-details summary {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
-  min-height: 48px;
+  min-height: 56px;
   cursor: pointer;
   color: #5b5144;
   font-size: 12px;
@@ -797,7 +797,7 @@ select:focus-visible {
 .bulletin-compact-event {
   border-left: 3px solid var(--gold);
   background: #f8efd9;
-  padding: 9px 10px;
+  padding: 11px 12px;
 }
 
 .bulletin-compact-event.pending {
@@ -815,7 +815,7 @@ select:focus-visible {
 
 .bulletin-compact-event span {
   display: block;
-  margin: 3px 0;
+  margin: 5px 0;
   color: var(--ink);
   font-size: 14px;
   font-weight: 800;
