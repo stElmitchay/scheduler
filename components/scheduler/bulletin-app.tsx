@@ -418,6 +418,14 @@ export function BulletinApp({
     weekly: pastorMetrics.weeklyBookings.length,
     pending: pastorMetrics.pendingBookings.length,
   };
+  const maxSpaceUse = Math.max(
+    1,
+    ...pastorDashboard.spaces.map((space) => space.count),
+  );
+  const maxDepartmentUse = Math.max(
+    1,
+    ...pastorDashboard.departments.map((department) => department.count),
+  );
 
   if (screen === "menu") {
     return (
@@ -711,7 +719,7 @@ export function BulletinApp({
             title="Dashboard"
             onMenu={() => setScreen("menu")}
           />
-          <section className="bulletin-metrics">
+          <section className="bulletin-metrics bulletin-metrics-compact">
             <div>
               <strong>{pastorDashboard.weekly}</strong>
               <span>This week</span>
@@ -730,35 +738,18 @@ export function BulletinApp({
             </div>
           </section>
 
-          <section className="bulletin-dashboard-section">
-            <h2>Pending attention</h2>
-            {pastorMetrics.pendingBookings.length === 0 ? (
-              <p className="bulletin-empty">No pending activities.</p>
-            ) : (
-              pastorMetrics.pendingBookings.slice(0, 5).map((booking) => (
-                <EventItem booking={booking} key={booking.id} />
-              ))
-            )}
-          </section>
-
-          <section className="bulletin-dashboard-section">
-            <h2>Upcoming 7 days</h2>
-            {pastorMetrics.upcomingBookings.length === 0 ? (
-              <p className="bulletin-empty">No confirmed upcoming activities.</p>
-            ) : (
-              pastorMetrics.upcomingBookings.map((booking) => (
-                <EventItem booking={booking} key={booking.id} />
-              ))
-            )}
-          </section>
-
           <section className="bulletin-dashboard-grid">
             <div className="bulletin-dashboard-section">
               <h2>Space usage</h2>
               {pastorDashboard.spaces.map((item) => (
-                <div className="bulletin-stat-row" key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.count}</strong>
+                <div className="bulletin-usage-row" key={item.label}>
+                  <div>
+                    <span>{item.label}</span>
+                    <strong>{item.count}</strong>
+                  </div>
+                  <i>
+                    <b style={{ width: `${(item.count / maxSpaceUse) * 100}%` }} />
+                  </i>
                 </div>
               ))}
             </div>
@@ -768,12 +759,14 @@ export function BulletinApp({
               {pastorDashboard.activityTypes.length === 0 ? (
                 <p className="bulletin-empty compact">No activity types yet.</p>
               ) : (
-                pastorDashboard.activityTypes.map((item) => (
-                  <div className="bulletin-stat-row" key={item.label}>
-                    <span>{item.label}</span>
-                    <strong>{item.count}</strong>
-                  </div>
-                ))
+                <div className="bulletin-chip-grid">
+                  {pastorDashboard.activityTypes.map((item) => (
+                    <span className="bulletin-insight-chip" key={item.label}>
+                      <strong>{item.count}</strong>
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           </section>
@@ -783,22 +776,85 @@ export function BulletinApp({
             {pastorDashboard.departments.length === 0 ? (
               <p className="bulletin-empty">No active departments this week.</p>
             ) : (
-              pastorDashboard.departments.map((item) => (
-                <div className="bulletin-stat-row" key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.count}</strong>
-                </div>
-              ))
+              <div className="bulletin-department-grid">
+                {pastorDashboard.departments.map((item) => (
+                  <div className="bulletin-department-row" key={item.label}>
+                    <div>
+                      <span>{item.label}</span>
+                      <i>
+                        <b
+                          style={{
+                            width: `${(item.count / maxDepartmentUse) * 100}%`,
+                          }}
+                        />
+                      </i>
+                    </div>
+                    <strong>{item.count}</strong>
+                  </div>
+                ))}
+              </div>
             )}
+          </section>
+
+          <section className="bulletin-dashboard-grid">
+            <details className="bulletin-dashboard-details">
+              <summary>
+                <span>Upcoming 7 days</span>
+                <strong>{pastorMetrics.upcomingBookings.length}</strong>
+              </summary>
+              {pastorMetrics.upcomingBookings.length === 0 ? (
+                <p className="bulletin-empty compact">
+                  No confirmed upcoming activities.
+                </p>
+              ) : (
+                <div className="bulletin-compact-events">
+                  {pastorMetrics.upcomingBookings.map((booking) => (
+                    <div className="bulletin-compact-event" key={booking.id}>
+                      <time>{formatDateTime(booking.startAt)}</time>
+                      <span>{booking.activityName}</span>
+                      <small>{bookingLine(booking)}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
+
+            <details className="bulletin-dashboard-details">
+              <summary>
+                <span>Pending attention</span>
+                <strong>{pastorMetrics.pendingBookings.length}</strong>
+              </summary>
+              {pastorMetrics.pendingBookings.length === 0 ? (
+                <p className="bulletin-empty compact">No pending activities.</p>
+              ) : (
+                <div className="bulletin-compact-events">
+                  {pastorMetrics.pendingBookings.slice(0, 5).map((booking) => (
+                    <div className="bulletin-compact-event pending" key={booking.id}>
+                      <time>{formatDateTime(booking.startAt)}</time>
+                      <span>{booking.activityName}</span>
+                      <small>{bookingLine(booking)}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
           </section>
 
           <div className="bulletin-title-rule">Today</div>
           {pastorDashboard.today.length === 0 ? (
             <p className="bulletin-empty">No confirmed activities today.</p>
           ) : (
-            pastorDashboard.today.map((booking) => (
-              <EventItem booking={booking} key={booking.id} />
-            ))
+            <div className="bulletin-compact-events">
+              {pastorDashboard.today.map((booking) => (
+                <div className="bulletin-compact-event" key={booking.id}>
+                  <time>
+                    {formatTime(booking.startAt)} - {formatTime(booking.endAt)}
+                  </time>
+                  <span>{booking.activityName}</span>
+                  <small>{bookingLine(booking)}</small>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </main>
