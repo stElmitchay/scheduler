@@ -46,28 +46,26 @@ select:focus-visible {
 }
 
 .bulletin-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background:
-    radial-gradient(circle at top, rgb(255 250 240 / 70%), transparent 34rem),
-    var(--background);
-  padding: 18px 12px 34px;
-}
-
-.bulletin-shell {
-  width: min(100%, 720px);
-  min-height: calc(100vh - 36px);
-  margin: 0 auto;
-  border: 1px solid rgb(34 31 26 / 18%);
-  background:
-    linear-gradient(rgb(255 250 240 / 94%), rgb(255 250 240 / 94%)),
+    linear-gradient(rgb(255 250 240 / 96%), rgb(255 250 240 / 96%)),
     repeating-linear-gradient(
       0deg,
       transparent,
       transparent 31px,
-      rgb(216 200 170 / 30%) 32px
+      rgb(216 200 170 / 24%) 32px
     );
-  box-shadow: 0 20px 48px rgb(65 50 30 / 18%);
-  padding: 18px;
+  padding: 0;
+}
+
+.bulletin-shell {
+  width: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 22px 18px 34px;
 }
 
 .bulletin-shell-wide {
@@ -609,11 +607,32 @@ select:focus-visible {
 
 @media (min-width: 640px) {
   .bulletin-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top, rgb(255 250 240 / 70%), transparent 34rem),
+      var(--background);
     padding: 28px 18px 48px;
   }
 
   .bulletin-shell {
+    width: min(100%, 720px);
+    min-height: calc(100vh - 56px);
+    margin: 0 auto;
+    border: 1px solid rgb(34 31 26 / 18%);
+    background:
+      linear-gradient(rgb(255 250 240 / 94%), rgb(255 250 240 / 94%)),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 31px,
+        rgb(216 200 170 / 30%) 32px
+      );
+    box-shadow: 0 20px 48px rgb(65 50 30 / 18%);
     padding: 26px;
+  }
+
+  .bulletin-shell-wide {
+    width: min(100%, 1040px);
   }
 
   .bulletin-form-grid,
