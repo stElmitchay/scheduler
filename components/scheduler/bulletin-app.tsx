@@ -426,6 +426,36 @@ export function BulletinApp({
     1,
     ...pastorDashboard.departments.map((department) => department.count),
   );
+  const topDepartment = pastorDashboard.departments[0];
+  const topSpace = pastorDashboard.spaces
+    .filter((space) => space.count > 0)
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))[0];
+  const topActivityType = pastorDashboard.activityTypes[0];
+  const pastorSummary =
+    pastorDashboard.weekly === 0
+      ? "There are no confirmed activities on the calendar this week yet."
+      : `This week, ${pastorDashboard.activeDepartments} ${
+          pastorDashboard.activeDepartments === 1 ? "department has" : "departments have"
+        } ${pastorDashboard.weekly} confirmed ${
+          pastorDashboard.weekly === 1 ? "activity" : "activities"
+        }. ${
+          topDepartment
+            ? `${topDepartment.label} is the most active department`
+            : "No department is leading activity yet"
+        }${
+          topSpace ? `, and ${topSpace.label} is the busiest space` : ""
+        }. ${
+          pastorDashboard.pending === 0
+            ? "There are no pending activities needing follow-up."
+            : `${pastorDashboard.pending} ${
+                pastorDashboard.pending === 1 ? "activity needs" : "activities need"
+              } follow-up.`
+        }`;
+  const pastorActivitySummary = topActivityType
+    ? `Most activity this week is ${
+        topActivityType.label === "Service" ? "services" : `${topActivityType.label.toLowerCase()} activities`
+      }.`
+    : "";
 
   if (screen === "menu") {
     return (
@@ -719,6 +749,10 @@ export function BulletinApp({
             title="Dashboard"
             onMenu={() => setScreen("menu")}
           />
+          <section className="bulletin-briefing">
+            <p>{pastorSummary}</p>
+            {pastorActivitySummary ? <small>{pastorActivitySummary}</small> : null}
+          </section>
           <section className="bulletin-metrics bulletin-metrics-compact">
             <div>
               <strong>{pastorDashboard.weekly}</strong>

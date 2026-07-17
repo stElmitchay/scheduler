@@ -605,6 +605,28 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
+.bulletin-briefing {
+  margin: 26px 0 8px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding: 16px 0;
+}
+
+.bulletin-briefing p {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.bulletin-briefing small {
+  display: block;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .bulletin-metrics-compact {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
