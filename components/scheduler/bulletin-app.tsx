@@ -203,6 +203,16 @@ export function BulletinApp({
   );
   const weekDays = useMemo(() => getWeekRange(today), [today]);
   const monthDays = useMemo(() => buildMonthGrid(monthCursor), [monthCursor]);
+  const publicWeekDays = useMemo(
+    () =>
+      weekDays
+        .map((day) => ({
+          day,
+          bookings: bookingsForDay(publicBookings, day),
+        }))
+        .filter(({ bookings }) => bookings.length > 0),
+    [publicBookings, weekDays],
+  );
   const selectedBookings = bookingsForDay(publicBookings, selectedDate, spaceFilter);
 
   const editableBookings = useMemo(() => {
@@ -695,22 +705,18 @@ export function BulletinApp({
         />
         <div className="bulletin-title-rule">This week at Kharis Freetown</div>
         <section className="bulletin-week-list">
-          {weekDays.map((day) => {
-            const dayBookings = bookingsForDay(publicBookings, day);
-
-            return (
+          {publicWeekDays.length === 0 ? (
+            <p className="bulletin-empty">No confirmed activities this week.</p>
+          ) : (
+            publicWeekDays.map(({ day, bookings }) => (
               <div key={formatDateKey(day)} className="bulletin-day-group">
                 <h2>{formatShortDay(day)}</h2>
-                {dayBookings.length === 0 ? (
-                  <p className="bulletin-empty compact">No activities.</p>
-                ) : (
-                  dayBookings.map((booking) => (
-                    <EventItem booking={booking} key={booking.id} />
-                  ))
-                )}
+                {bookings.map((booking) => (
+                  <EventItem booking={booking} key={booking.id} />
+                ))}
               </div>
-            );
-          })}
+            ))
+          )}
         </section>
         <button
           type="button"
