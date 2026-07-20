@@ -547,40 +547,56 @@ export function BulletinApp({
             ))}
           </div>
 
-          <section className="calendar-app-grid" aria-label="Monthly calendar">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div className="calendar-weekday" key={day}>
-                {day}
-              </div>
-            ))}
-            {monthDays.map((day) => {
-              const dayBookings = bookingsForDay(publicBookings, day, spaceFilter);
-              const isSelected = isSameDate(day, selectedDate);
-              const isOutsideMonth = day.getMonth() !== monthCursor.getMonth();
+          <section className="bulletin-calendar-scroll">
+            <section className="calendar-app-grid" aria-label="Monthly calendar">
+              {[
+                ["Sun", "S"],
+                ["Mon", "M"],
+                ["Tue", "T"],
+                ["Wed", "W"],
+                ["Thu", "T"],
+                ["Fri", "F"],
+                ["Sat", "S"],
+              ].map(([full, short]) => (
+                <div className="calendar-weekday" key={full}>
+                  <span className="calendar-weekday-full">{full}</span>
+                  <span className="calendar-weekday-short">{short}</span>
+                </div>
+              ))}
+              {monthDays.map((day) => {
+                const dayBookings = bookingsForDay(publicBookings, day, spaceFilter);
+                const isSelected = isSameDate(day, selectedDate);
+                const isOutsideMonth = day.getMonth() !== monthCursor.getMonth();
 
-              return (
-                <button
-                  type="button"
-                  key={formatDateKey(day)}
-                  className={[
-                    "calendar-day-cell",
-                    isSelected ? "selected" : "",
-                    isOutsideMonth ? "outside" : "",
-                  ].join(" ")}
-                  onClick={() => setSelectedDate(day)}
-                >
-                  <span className="calendar-day-number">{day.getDate()}</span>
-                  <span className="calendar-day-events">
-                    {dayBookings.slice(0, 2).map((booking) => (
-                      <span key={booking.id}>{booking.activityName}</span>
-                    ))}
-                    {dayBookings.length > 2 ? (
-                      <em>+{dayBookings.length - 2} more</em>
+                return (
+                  <button
+                    type="button"
+                    key={formatDateKey(day)}
+                    className={[
+                      "calendar-day-cell",
+                      isSelected ? "selected" : "",
+                      isOutsideMonth ? "outside" : "",
+                    ].join(" ")}
+                    onClick={() => setSelectedDate(day)}
+                  >
+                    <span className="calendar-day-number">{day.getDate()}</span>
+                    {dayBookings.length > 0 ? (
+                      <span className="calendar-day-count" aria-hidden="true">
+                        {dayBookings.length}
+                      </span>
                     ) : null}
-                  </span>
-                </button>
-              );
-            })}
+                    <span className="calendar-day-events">
+                      {dayBookings.slice(0, 2).map((booking) => (
+                        <span key={booking.id}>{booking.activityName}</span>
+                      ))}
+                      {dayBookings.length > 2 ? (
+                        <em>+{dayBookings.length - 2} more</em>
+                      ) : null}
+                    </span>
+                  </button>
+                );
+              })}
+            </section>
           </section>
 
           <section className="bulletin-section">

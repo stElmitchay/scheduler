@@ -47,6 +47,8 @@ select:focus-visible {
 
 .bulletin-page {
   min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: hidden;
   background:
     linear-gradient(rgb(255 250 240 / 96%), rgb(255 250 240 / 96%)),
     repeating-linear-gradient(
@@ -60,12 +62,14 @@ select:focus-visible {
 
 .bulletin-shell {
   width: 100%;
+  max-width: 100%;
   min-height: 100dvh;
   margin: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
-  padding: 28px 22px 44px;
+  padding: 20px 16px 36px;
+  overflow-x: hidden;
 }
 
 .bulletin-shell-wide {
@@ -74,9 +78,13 @@ select:focus-visible {
 
 .bulletin-header {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: start;
+}
+
+.bulletin-header > div {
+  min-width: 0;
 }
 
 .bulletin-eyebrow,
@@ -98,15 +106,16 @@ select:focus-visible {
 
 .bulletin-icon-button {
   display: grid;
-  width: 54px;
-  height: 54px;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
   place-items: center;
   border: 2px solid var(--gold);
   border-radius: 50%;
   background: #fff6df;
   color: #6f4b12;
   font: inherit;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 950;
 }
 
@@ -135,13 +144,14 @@ select:focus-visible {
 }
 
 .bulletin-title-rule {
-  margin: 26px 0 18px;
+  margin: 20px 0 14px;
   border-top: 2px solid var(--ink);
   border-bottom: 2px solid var(--ink);
-  padding: 11px 0 13px;
+  padding: 10px 0 12px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(27px, 9vw, 40px);
-  line-height: 1;
+  font-size: clamp(22px, 7vw, 40px);
+  line-height: 1.05;
+  word-break: break-word;
 }
 
 .bulletin-week-list {
@@ -344,13 +354,19 @@ select:focus-visible {
 .bulletin-calendar-toolbar,
 .bulletin-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 5px;
 }
 
 .bulletin-calendar-toolbar {
-  margin: 22px 0 12px;
+  margin: 18px 0 10px;
+}
+
+.bulletin-calendar-scroll {
+  margin: 0 -16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px 4px;
 }
 
 .bulletin-calendar-toolbar button,
@@ -375,6 +391,7 @@ select:focus-visible {
 .calendar-app-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-width: 280px;
   border-top: 1px solid var(--rule);
   border-left: 1px solid var(--rule);
   background: #fff7e6;
@@ -387,21 +404,29 @@ select:focus-visible {
 }
 
 .calendar-weekday {
-  padding: 8px 4px;
+  padding: 6px 2px;
   color: #7c5616;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-align: center;
   text-transform: uppercase;
 }
 
+.calendar-weekday-full {
+  display: none;
+}
+
+.calendar-weekday-short {
+  display: inline;
+}
+
 .calendar-day-cell {
-  min-height: 76px;
+  min-height: 52px;
   background: #fffaf0;
   color: var(--ink);
-  padding: 6px;
-  text-align: left;
+  padding: 4px 2px;
+  text-align: center;
 }
 
 .calendar-day-cell.outside {
@@ -415,14 +440,30 @@ select:focus-visible {
 
 .calendar-day-number {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
+  line-height: 1.1;
+}
+
+.calendar-day-count {
+  display: inline-block;
+  min-width: 16px;
+  margin-top: 3px;
+  border-radius: 99px;
+  background: var(--green-dark);
+  color: white;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 16px;
+  text-align: center;
 }
 
 .calendar-day-events {
-  display: grid;
+  display: none;
   gap: 3px;
   margin-top: 5px;
+  text-align: left;
 }
 
 .calendar-day-events span,
@@ -461,19 +502,27 @@ select:focus-visible {
 .bulletin-form label {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .bulletin-form input,
 .bulletin-form select {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
   min-height: 48px;
   border: 1px solid var(--rule);
   border-radius: 0;
   background: #fff7e6;
   color: var(--ink);
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   padding: 0 12px;
+}
+
+.bulletin-form input[type="datetime-local"] {
+  min-width: 0;
+  appearance: none;
 }
 
 .bulletin-form .bulletin-check {
@@ -495,7 +544,9 @@ select:focus-visible {
 
 .bulletin-form-grid {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 13px;
+  min-width: 0;
 }
 
 .bulletin-message {
@@ -521,12 +572,16 @@ select:focus-visible {
 .bulletin-manage-row h3 {
   margin: 0;
   font-size: 16px;
+  line-height: 1.2;
+  word-break: break-word;
 }
 
 .bulletin-manage-row p {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .bulletin-status-badge {
@@ -558,13 +613,18 @@ select:focus-visible {
 }
 
 .bulletin-row-actions {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .bulletin-row-actions form {
-  display: inline;
+  display: block;
+}
+
+.bulletin-row-actions button {
+  width: 100%;
+  min-height: 44px;
 }
 
 .bulletin-row-actions button:last-child {
@@ -874,9 +934,54 @@ select:focus-visible {
     width: min(100%, 1040px);
   }
 
+  .bulletin-header {
+    gap: 14px;
+  }
+
+  .bulletin-icon-button {
+    width: 54px;
+    height: 54px;
+    font-size: 28px;
+  }
+
+  .bulletin-title-rule {
+    margin: 26px 0 18px;
+    padding: 11px 0 13px;
+  }
+
+  .bulletin-calendar-toolbar {
+    margin: 22px 0 12px;
+  }
+
+  .bulletin-calendar-scroll {
+    margin: 0;
+    overflow-x: visible;
+    padding: 0;
+  }
+
+  .bulletin-form input,
+  .bulletin-form select {
+    font-size: 15px;
+  }
+
   .bulletin-form-grid,
   .bulletin-manage-row {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .bulletin-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .bulletin-row-actions form {
+    display: inline;
+  }
+
+  .bulletin-row-actions button {
+    width: auto;
+    min-height: 0;
   }
 
   .bulletin-metrics,
@@ -888,8 +993,35 @@ select:focus-visible {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  .calendar-weekday {
+    padding: 8px 4px;
+    font-size: 10px;
+  }
+
+  .calendar-weekday-full {
+    display: inline;
+  }
+
+  .calendar-weekday-short {
+    display: none;
+  }
+
   .calendar-day-cell {
     min-height: 112px;
+    padding: 6px;
+    text-align: left;
+  }
+
+  .calendar-day-number {
+    font-size: 13px;
+  }
+
+  .calendar-day-count {
+    display: none;
+  }
+
+  .calendar-day-events {
+    display: grid;
   }
 
   .calendar-day-events span,
