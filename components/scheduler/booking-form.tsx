@@ -1,7 +1,8 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   createBookingAction,
   updateBookingAction,
@@ -20,6 +21,13 @@ import {
 } from "@/lib/scheduler/types";
 
 const initialState: FormActionState = { ok: false, message: "" };
+
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
 
 function toDateTimeInputValue(value?: string) {
   if (!value) {
@@ -57,23 +65,87 @@ export function BookingForm({
   spaces: Space[];
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const action = booking ? updateBookingAction : createBookingAction;
   const [state, formAction, pending] = useActionState(action, initialState);
   const [selectedActivityType, setSelectedActivityType] = useState<ActivityType>(
     booking?.activityType ?? "Meeting",
   );
+  const [warnDismissed, setWarnDismissed] = useState(false);
   const showDepartmentPicker = access.kind === "pastor";
   const spaceIsOptional = activityTypeAllowsOptionalSpace(selectedActivityType);
 
   useEffect(() => {
-    if (state.ok) {
+    if (state.ok === true) {
       router.refresh();
       onSaved?.(state);
     }
+    if (state.ok === "warn") {
+      setWarnDismissed(false);
+    }
   }, [onSaved, router, state]);
 
+  const conflictModal =
+    state.ok === "warn" && !warnDismissed && typeof document !== "undefined"
+      ? createPortal(
+          <div className="bulletin-modal-backdrop" role="presentation">
+            <div
+              className="bulletin-access-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="conflict-modal-title"
+            >
+              <button
+                type="button"
+                className="bulletin-modal-close"
+                onClick={() => setWarnDismissed(true)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <h2 id="conflict-modal-title">Activity at this time</h2>
+              <p className="bulletin-conflict-modal-intro">
+                Another department has something scheduled at the same time:
+              </p>
+              {state.conflicts.map((conflict, i) => (
+                <div key={i} className="bulletin-conflict-item">
+                  <strong>{conflict.activityName}</strong>
+                  <span>
+                    {conflict.departmentName} · {conflict.spaceName} ·{" "}
+                    {formatTime(conflict.startAt)}–{formatTime(conflict.endAt)}
+                  </span>
+                </div>
+              ))}
+              <p className="bulletin-conflict-modal-hint">
+                They are using a different space, so there is no room conflict.
+                Confirm with administration if needed before submitting.
+              </p>
+              <button
+                type="button"
+                className="bulletin-primary"
+                style={{ marginTop: 16 }}
+                onClick={() => formRef.current?.requestSubmit()}
+              >
+                Submit anyway
+              </button>
+              <button
+                type="button"
+                className="bulletin-secondary-full"
+                onClick={() => setWarnDismissed(true)}
+              >
+                Go back
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
+    <>
+      {conflictModal}
     <form
+      ref={formRef}
       action={formAction}
       className="bulletin-form"
     >
@@ -180,14 +252,12 @@ export function BookingForm({
         </label>
       ) : null}
 
-      {state.message ? (
-        <p
-          className={
-            state.ok ? "bulletin-message" : "bulletin-message error"
-          }
-        >
-          {state.message}
-        </p>
+      {state.ok === "warn" ? (
+        <input type="hidden" name="skipSoftConflict" value="true" />
+      ) : null}
+
+      {state.ok === false && state.message ? (
+        <p className="bulletin-message error">{state.message}</p>
       ) : null}
 
       <button
@@ -198,5 +268,6 @@ export function BookingForm({
         {pending ? "Saving..." : booking ? "Update activity" : "Create activity"}
       </button>
     </form>
+    </>
   );
 }

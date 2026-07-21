@@ -54,6 +54,14 @@ export type AccessContext =
   | { kind: "department"; departmentId: string; departmentName: string }
   | { kind: "pastor" };
 
+export type ConflictInfo = {
+  activityName: string;
+  departmentName: string;
+  spaceName: string;
+  startAt: string;
+  endAt: string;
+};
+
 export type BookingFormInput = {
   accessCode: string;
   departmentId?: string;
@@ -64,6 +72,7 @@ export type BookingFormInput = {
   startAt: string;
   endAt: string;
   repeatWeekly: boolean;
+  skipSoftConflict: boolean;
 };
 
 export type ValidationResult =

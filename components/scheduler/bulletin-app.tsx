@@ -446,10 +446,12 @@ export function BulletinApp({
           topSpace ? `, and ${topSpace.label} is the busiest space` : ""
         }. ${
           pastorDashboard.pending === 0
-            ? "There are no pending activities needing follow-up."
+            ? "There are no bookings awaiting confirmation."
             : `${pastorDashboard.pending} ${
-                pastorDashboard.pending === 1 ? "activity needs" : "activities need"
-              } follow-up.`
+                pastorDashboard.pending === 1
+                  ? "booking is pending and still needs to be confirmed."
+                  : "bookings are pending and still need to be confirmed."
+              }`
         }`;
   const pastorActivitySummary = topActivityType
     ? `Most activity this week is ${
@@ -871,11 +873,11 @@ export function BulletinApp({
 
             <details className="bulletin-dashboard-details">
               <summary>
-                <span>Pending attention</span>
+                <span>Pending confirmation</span>
                 <strong>{pastorMetrics.pendingBookings.length}</strong>
               </summary>
               {pastorMetrics.pendingBookings.length === 0 ? (
-                <p className="bulletin-empty compact">No pending activities.</p>
+                <p className="bulletin-empty compact">No pending bookings.</p>
               ) : (
                 <div className="bulletin-compact-events">
                   {pastorMetrics.pendingBookings.slice(0, 5).map((booking) => (

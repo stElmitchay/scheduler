@@ -13,14 +13,13 @@ import type {
   ActivityType,
   BookingFormInput,
   BookingStatus,
+  ConflictInfo,
 } from "@/lib/scheduler/types";
 
-export type FormActionState = {
-  ok: boolean;
-  message: string;
-  startAt?: string;
-  status?: BookingStatus;
-};
+export type FormActionState =
+  | { ok: true; message: string; startAt?: string; status?: BookingStatus }
+  | { ok: "warn"; message: string; conflicts: ConflictInfo[] }
+  | { ok: false; message: string };
 
 export type AccessActionState =
   | {
@@ -55,6 +54,7 @@ function readBookingInput(formData: FormData): BookingFormInput {
     startAt: value(formData, "startAt"),
     endAt: value(formData, "endAt"),
     repeatWeekly: value(formData, "repeatWeekly") === "on",
+    skipSoftConflict: value(formData, "skipSoftConflict") === "true",
   };
 }
 
@@ -98,7 +98,7 @@ export async function createBookingAction(
 ): Promise<FormActionState> {
   const result = await createBooking(readBookingInput(formData));
 
-  if (result.ok) {
+  if (result.ok === true) {
     revalidatePath("/");
   }
 
@@ -111,7 +111,7 @@ export async function updateBookingAction(
 ): Promise<FormActionState> {
   const result = await updateBooking(readBookingInput(formData));
 
-  if (result.ok) {
+  if (result.ok === true) {
     revalidatePath("/");
   }
 
@@ -131,7 +131,7 @@ export async function cancelBookingAction(
 
   const result = await cancelBooking(accessCode, bookingId);
 
-  if (result.ok) {
+  if (result.ok === true) {
     revalidatePath("/");
   }
 
@@ -151,7 +151,7 @@ export async function confirmBookingAction(
 
   const result = await confirmBooking(accessCode, bookingId);
 
-  if (result.ok) {
+  if (result.ok === true) {
     revalidatePath("/");
   }
 

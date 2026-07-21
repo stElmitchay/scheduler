@@ -6,12 +6,14 @@ import type {
   Booking,
   BookingFormInput,
   BookingStatus,
+  ConflictInfo,
   Department,
   Space,
 } from "./types";
 
 export type ActionResult =
   | { ok: true; message: string; startAt?: string; status?: BookingStatus }
+  | { ok: "warn"; message: string; conflicts: ConflictInfo[] }
   | { ok: false; message: string };
 
 type BookingRow = {
@@ -166,23 +168,42 @@ function hasHardSpaceConflict(
   );
 }
 
-function hasSoftDepartmentConflict(
+function getSoftConflicts(
   occurrences: OccurrenceInput[],
   bookings: BookingRow[],
   departmentId: string,
-) {
-  return occurrences.some((occurrence) =>
-    bookings.some(
-      (booking) =>
-        booking.department_id !== departmentId &&
+): ConflictInfo[] {
+  const seen = new Set<string>();
+  const conflicts: ConflictInfo[] = [];
+
+  for (const booking of bookings) {
+    if (booking.department_id === departmentId) continue;
+    if (
+      !occurrences.some((occurrence) =>
         rangesOverlap(
           new Date(occurrence.startAt),
           new Date(occurrence.endAt),
           new Date(booking.start_at),
           new Date(booking.end_at),
         ),
-    ),
-  );
+      )
+    )
+      continue;
+
+    const key = `${booking.activity_name}:${booking.department_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    conflicts.push({
+      activityName: booking.activity_name,
+      departmentName: booking.departments?.name ?? "Unknown department",
+      spaceName: booking.spaces?.name ?? "No space",
+      startAt: booking.start_at,
+      endAt: booking.end_at,
+    });
+  }
+
+  return conflicts;
 }
 
 export async function getSpaces(): Promise<Space[]> {
@@ -313,13 +334,15 @@ export async function createBooking(
     return { ok: false, message: "That space is unavailable for the selected time." };
   }
 
-  const status: BookingStatus = hasSoftDepartmentConflict(
-    occurrences,
-    overlappingBookings,
-    departmentId,
-  )
-    ? "pending"
-    : "confirmed";
+  const softConflicts = getSoftConflicts(occurrences, overlappingBookings, departmentId);
+
+  if (softConflicts.length > 0 && !input.skipSoftConflict) {
+    return {
+      ok: "warn",
+      message: "Another department has activities scheduled at this time.",
+      conflicts: softConflicts,
+    };
+  }
 
   const { error } = await supabase.from("bookings").insert(
     occurrences.map((occurrence) => ({
@@ -329,22 +352,12 @@ export async function createBooking(
       activity_name: input.activityName.trim(),
       start_at: occurrence.startAt,
       end_at: occurrence.endAt,
-      status,
+      status: "confirmed",
     })),
   );
 
   if (error) {
     return { ok: false, message: conflictMessage(error) };
-  }
-
-  if (status === "pending") {
-    return {
-      ok: true,
-      message:
-        "Activity saved as pending because another department has an activity at that time. Confirm it after clarifying off-app.",
-      startAt: occurrences[0]?.startAt,
-      status,
-    };
   }
 
   return {
@@ -353,7 +366,7 @@ export async function createBooking(
       ? "12 weekly activities created."
       : "Activity created.",
     startAt: occurrences[0]?.startAt,
-    status,
+    status: "confirmed",
   };
 }
 
@@ -418,13 +431,15 @@ export async function updateBooking(
     return { ok: false, message: "That space is unavailable for the selected time." };
   }
 
-  const status: BookingStatus = hasSoftDepartmentConflict(
-    occurrences,
-    overlappingBookings,
-    departmentId,
-  )
-    ? "pending"
-    : "confirmed";
+  const softConflicts = getSoftConflicts(occurrences, overlappingBookings, departmentId);
+
+  if (softConflicts.length > 0 && !input.skipSoftConflict) {
+    return {
+      ok: "warn",
+      message: "Another department has activities scheduled at this time.",
+      conflicts: softConflicts,
+    };
+  }
 
   const { error } = await supabase
     .from("bookings")
@@ -435,7 +450,7 @@ export async function updateBooking(
       activity_name: input.activityName.trim(),
       start_at: input.startAt,
       end_at: input.endAt,
-      status,
+      status: "confirmed",
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.bookingId);
@@ -446,12 +461,9 @@ export async function updateBooking(
 
   return {
     ok: true,
-    message:
-      status === "pending"
-        ? "Activity updated and moved to pending because another department has an activity at that time."
-        : "Activity updated.",
+    message: "Activity updated.",
     startAt: input.startAt,
-    status,
+    status: "confirmed",
   };
 }
 
