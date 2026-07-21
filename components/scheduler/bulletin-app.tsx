@@ -362,7 +362,7 @@ export function BulletinApp({
     setEditingId(null);
   }
 
-  function handleFormSaved(state: FormActionState) {
+  function handleFormSaved(state: Extract<FormActionState, { ok: true }>) {
     if (state.startAt) {
       const savedDate = new Date(state.startAt);
       setSelectedDate(savedDate);

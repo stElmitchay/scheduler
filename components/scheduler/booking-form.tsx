@@ -61,7 +61,7 @@ export function BookingForm({
   accessCode: string;
   booking?: Booking;
   departments: Department[];
-  onSaved?: (state: FormActionState) => void;
+  onSaved?: (state: Extract<FormActionState, { ok: true }>) => void;
   spaces: Space[];
 }) {
   const router = useRouter();
