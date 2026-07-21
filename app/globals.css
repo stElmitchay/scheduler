@@ -21,8 +21,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  background: var(--paper);
+}
+
 body {
-  background: var(--background);
+  background: var(--paper);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -46,29 +50,24 @@ select:focus-visible {
 }
 
 .bulletin-page {
+  min-height: 100svh;
   min-height: 100dvh;
   max-width: 100%;
   overflow-x: hidden;
-  background:
-    linear-gradient(rgb(255 250 240 / 96%), rgb(255 250 240 / 96%)),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 31px,
-      rgb(216 200 170 / 24%) 32px
-    );
+  background: var(--paper);
   padding: 0;
 }
 
 .bulletin-shell {
   width: 100%;
   max-width: 100%;
+  min-height: 100svh;
   min-height: 100dvh;
   margin: 0;
   border: 0;
-  background: transparent;
+  background: var(--paper);
   box-shadow: none;
-  padding: 20px 16px 36px;
+  padding: max(20px, env(safe-area-inset-top, 0px)) 16px calc(36px + env(safe-area-inset-bottom, 0px));
   overflow-x: hidden;
 }
 
