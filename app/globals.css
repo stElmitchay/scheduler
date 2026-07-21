@@ -661,9 +661,15 @@ select:focus-visible {
   min-height: 44px;
 }
 
-.bulletin-row-actions button:last-child {
+.bulletin-row-actions .bulletin-cancel-btn {
   border-color: #fecdd3;
   color: var(--rose);
+}
+
+.bulletin-row-actions .bulletin-delete-btn {
+  border-color: var(--rose);
+  background: var(--rose);
+  color: white;
 }
 
 .bulletin-row-actions button:disabled {

@@ -517,6 +517,53 @@ export async function cancelBooking(
   return { ok: true, message: "Activity cancelled." };
 }
 
+export async function deleteBooking(
+  accessCode: string,
+  bookingId: string,
+): Promise<ActionResult> {
+  const access = await resolveAccessCode(accessCode);
+
+  if (!access) {
+    return { ok: false, message: "Invalid access code." };
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data: existing, error: existingError } = await supabase
+    .from("bookings")
+    .select("department_id")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  if (!existing) {
+    return { ok: false, message: "Activity was not found." };
+  }
+
+  if (
+    access.kind === "department" &&
+    existing.department_id !== access.departmentId
+  ) {
+    return {
+      ok: false,
+      message: "You can only delete your department's activities.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("bookings")
+    .delete()
+    .eq("id", bookingId);
+
+  if (error) {
+    return { ok: false, message: "The activity could not be deleted." };
+  }
+
+  return { ok: true, message: "Activity deleted." };
+}
+
 export async function confirmBooking(
   accessCode: string,
   bookingId: string,

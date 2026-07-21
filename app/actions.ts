@@ -5,6 +5,7 @@ import {
   cancelBooking,
   confirmBooking,
   createBooking,
+  deleteBooking,
   resolveAccessCode,
   updateBooking,
 } from "@/lib/scheduler/data";
@@ -150,6 +151,26 @@ export async function confirmBookingAction(
   }
 
   const result = await confirmBooking(accessCode, bookingId);
+
+  if (result.ok === true) {
+    revalidatePath("/");
+  }
+
+  return result;
+}
+
+export async function deleteBookingAction(
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const accessCode = value(formData, "accessCode");
+  const bookingId = value(formData, "bookingId");
+
+  if (!accessCode || !bookingId) {
+    return initialError;
+  }
+
+  const result = await deleteBooking(accessCode, bookingId);
 
   if (result.ok === true) {
     revalidatePath("/");

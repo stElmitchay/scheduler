@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import {
   cancelBookingAction,
   confirmBookingAction,
+  deleteBookingAction,
   unlockAccessAction,
   type FormActionState,
 } from "@/app/actions";
@@ -203,6 +204,10 @@ export function BulletinApp({
   );
   const [confirmState, confirmAction, confirmPending] = useActionState(
     confirmBookingAction,
+    initialCancelState,
+  );
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteBookingAction,
     initialCancelState,
   );
 
@@ -715,9 +720,21 @@ export function BulletinApp({
                       <input type="hidden" name="bookingId" value={booking.id} />
                       <button
                         type="submit"
+                        className="bulletin-cancel-btn"
                         disabled={cancelPending || booking.status === "cancelled"}
                       >
                         Cancel
+                      </button>
+                    </form>
+                    <form action={deleteAction}>
+                      <input type="hidden" name="accessCode" value={activeCode} />
+                      <input type="hidden" name="bookingId" value={booking.id} />
+                      <button
+                        type="submit"
+                        className="bulletin-delete-btn"
+                        disabled={deletePending}
+                      >
+                        Delete
                       </button>
                     </form>
                   </div>
@@ -741,6 +758,15 @@ export function BulletinApp({
               }
             >
               {confirmState.message}
+            </p>
+          ) : null}
+          {deleteState.message ? (
+            <p
+              className={
+                deleteState.ok ? "bulletin-message" : "bulletin-message error"
+              }
+            >
+              {deleteState.message}
             </p>
           ) : null}
           <button
