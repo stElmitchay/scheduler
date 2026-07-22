@@ -72,6 +72,7 @@ export function BookingForm({
     booking?.activityType ?? "Meeting",
   );
   const [warnDismissed, setWarnDismissed] = useState(false);
+  const [blockedDismissed, setBlockedDismissed] = useState(false);
   const showDepartmentPicker = access.kind === "pastor";
   const spaceIsOptional = activityTypeAllowsOptionalSpace(selectedActivityType);
 
@@ -82,6 +83,9 @@ export function BookingForm({
     }
     if (state.ok === "warn") {
       setWarnDismissed(false);
+    }
+    if (state.ok === "blocked") {
+      setBlockedDismissed(false);
     }
   }, [onSaved, router, state]);
 
@@ -141,9 +145,44 @@ export function BookingForm({
         )
       : null;
 
+  const blockedModal =
+    state.ok === "blocked" && !blockedDismissed && typeof document !== "undefined"
+      ? createPortal(
+          <div className="bulletin-modal-backdrop" role="presentation">
+            <div
+              className="bulletin-access-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="blocked-modal-title"
+            >
+              <button
+                type="button"
+                className="bulletin-modal-close"
+                onClick={() => setBlockedDismissed(true)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <h2 id="blocked-modal-title">Activity not saved</h2>
+              <p className="bulletin-conflict-modal-intro">{state.message}</p>
+              <button
+                type="button"
+                className="bulletin-primary"
+                style={{ marginTop: 16 }}
+                onClick={() => setBlockedDismissed(true)}
+              >
+                OK
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <>
       {conflictModal}
+      {blockedModal}
     <form
       ref={formRef}
       action={formAction}

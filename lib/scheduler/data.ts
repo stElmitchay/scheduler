@@ -20,6 +20,7 @@ import type {
 export type ActionResult =
   | { ok: true; message: string; startAt?: string; status?: BookingStatus }
   | { ok: "warn"; message: string; conflicts: ConflictInfo[] }
+  | { ok: "blocked"; message: string }
   | { ok: false; message: string };
 
 type BookingRow = {
@@ -384,7 +385,7 @@ export async function createBooking(
   const exceededDay = await getDailyLimitExceededDay(occurrences, input.activityType);
 
   if (exceededDay) {
-    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
+    return { ok: "blocked", message: DAILY_LIMIT_EXCEEDED_MESSAGE };
   }
 
   const softConflicts = getSoftConflicts(occurrences, overlappingBookings, departmentId);
@@ -491,7 +492,7 @@ export async function updateBooking(
   );
 
   if (exceededDay) {
-    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
+    return { ok: "blocked", message: DAILY_LIMIT_EXCEEDED_MESSAGE };
   }
 
   const softConflicts = getSoftConflicts(occurrences, overlappingBookings, departmentId);
@@ -680,7 +681,7 @@ export async function confirmBooking(
   );
 
   if (exceededDay) {
-    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
+    return { ok: "blocked", message: DAILY_LIMIT_EXCEEDED_MESSAGE };
   }
 
   const { error } = await supabase

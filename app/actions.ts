@@ -20,6 +20,7 @@ import type {
 export type FormActionState =
   | { ok: true; message: string; startAt?: string; status?: BookingStatus }
   | { ok: "warn"; message: string; conflicts: ConflictInfo[] }
+  | { ok: "blocked"; message: string }
   | { ok: false; message: string };
 
 export type AccessActionState =
