@@ -484,6 +484,16 @@ export async function updateBooking(
     return { ok: false, message: "That space is unavailable for the selected time." };
   }
 
+  const exceededDay = await getDailyLimitExceededDay(
+    occurrences,
+    input.activityType,
+    input.bookingId,
+  );
+
+  if (exceededDay) {
+    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
+  }
+
   const softConflicts = getSoftConflicts(occurrences, overlappingBookings, departmentId);
 
   if (softConflicts.length > 0 && !input.skipSoftConflict) {
