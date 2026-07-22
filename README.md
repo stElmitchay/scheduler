@@ -20,6 +20,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Booking Rules
+
+- **Space conflicts** — two confirmed activities can't overlap in the same space. This is blocked outright.
+- **Department conflicts** — if another department already has something scheduled at an overlapping time (in a different space), the new activity is saved as *pending* instead of *confirmed*, so it can be reviewed before it's treated as final.
+- **Daily activity limit** — no more than 3 confirmed activities can be scheduled church-wide on any single calendar day. Sunday services are exempt: they don't count toward the limit and are never blocked by it.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
