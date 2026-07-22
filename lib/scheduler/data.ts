@@ -1,5 +1,11 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { hashAccessCode } from "./access";
+import {
+  countConfirmedByDay,
+  findExceededDay,
+  getDayRange,
+  isDailyLimitExempt,
+} from "./daily-limit.mjs";
 import { rangesOverlap, validateBookingInput } from "./validation";
 import type {
   AccessContext,
@@ -63,6 +69,9 @@ function conflictMessage(error: SupabaseMutationError) {
 
   return "The activity could not be saved.";
 }
+
+const DAILY_LIMIT_EXCEEDED_MESSAGE =
+  "This day already has 3 activities scheduled. Only 3 activities can be booked per day.";
 
 type OccurrenceInput = {
   spaceId: string | null;
@@ -206,6 +215,44 @@ function getSoftConflicts(
   return conflicts;
 }
 
+async function getDailyLimitExceededDay(
+  occurrences: OccurrenceInput[],
+  activityType: Booking["activityType"],
+  excludeBookingId?: string,
+): Promise<string | null> {
+  if (occurrences.length === 0 || isDailyLimitExempt(activityType)) {
+    return null;
+  }
+
+  const { start, end } = getDayRange(occurrences);
+
+  let query = createServerSupabaseClient()
+    .from("bookings")
+    .select("activity_type, start_at")
+    .eq("status", "confirmed")
+    .neq("activity_type", "Service")
+    .gte("start_at", start)
+    .lt("start_at", end);
+
+  if (excludeBookingId) {
+    query = query.neq("id", excludeBookingId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const counts = countConfirmedByDay(
+    (data as { activity_type: Booking["activityType"]; start_at: string }[]).map(
+      (row) => ({ activityType: row.activity_type, startAt: row.start_at }),
+    ),
+  );
+
+  return findExceededDay(occurrences, counts);
+}
+
 export async function getSpaces(): Promise<Space[]> {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
@@ -334,6 +381,12 @@ export async function createBooking(
     return { ok: false, message: "That space is unavailable for the selected time." };
   }
 
+  const exceededDay = await getDailyLimitExceededDay(occurrences, input.activityType);
+
+  if (exceededDay) {
+    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
+  }
+
   const softConflicts = getSoftConflicts(occurrences, overlappingBookings, departmentId);
 
   if (softConflicts.length > 0 && !input.skipSoftConflict) {
@@ -429,6 +482,16 @@ export async function updateBooking(
 
   if (hasHardSpaceConflict(occurrences, overlappingBookings)) {
     return { ok: false, message: "That space is unavailable for the selected time." };
+  }
+
+  const exceededDay = await getDailyLimitExceededDay(
+    occurrences,
+    input.activityType,
+    input.bookingId,
+  );
+
+  if (exceededDay) {
+    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
   }
 
   const softConflicts = getSoftConflicts(occurrences, overlappingBookings, departmentId);
@@ -577,7 +640,7 @@ export async function confirmBooking(
   const supabase = createServerSupabaseClient();
   const { data: existing, error: existingError } = await supabase
     .from("bookings")
-    .select("department_id, space_id, start_at, end_at")
+    .select("department_id, space_id, activity_type, start_at, end_at")
     .eq("id", bookingId)
     .maybeSingle();
 
@@ -608,6 +671,16 @@ export async function confirmBooking(
 
   if (hasHardSpaceConflict([occurrence], overlappingBookings)) {
     return { ok: false, message: "That space is unavailable for the selected time." };
+  }
+
+  const exceededDay = await getDailyLimitExceededDay(
+    [occurrence],
+    existing.activity_type,
+    bookingId,
+  );
+
+  if (exceededDay) {
+    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
   }
 
   const { error } = await supabase

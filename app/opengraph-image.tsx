@@ -15,102 +15,94 @@ export default function Image() {
           width: "100%",
           height: "100%",
           display: "flex",
-          background: "#fff8e8",
-          color: "#252018",
-          fontFamily: "Georgia, 'Times New Roman', serif",
-          padding: 54,
+          flexDirection: "column",
+          justifyContent: "space-between",
+          background: "#fbfaf8",
+          color: "#17181a",
+          fontFamily: "Arial, Helvetica, sans-serif",
+          padding: 72,
         }}
       >
         <div
           style={{
-            width: "100%",
-            height: "100%",
             display: "flex",
-            flexDirection: "column",
             justifyContent: "space-between",
-            border: "8px solid #252018",
-            padding: 56,
-            position: "relative",
+            alignItems: "center",
           }}
         >
-          <div
+          <span
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              fontFamily: "Arial, Helvetica, sans-serif",
               textTransform: "uppercase",
               letterSpacing: 3,
-              fontSize: 28,
-              fontWeight: 800,
+              fontSize: 24,
+              fontWeight: 600,
+              color: "#6b6f72",
             }}
           >
-            <span>Kharis Church Freetown</span>
-            <span style={{ color: "#8b6f46" }}>Scheduler</span>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            Kharis Church Freetown
+          </span>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 16,
+              background: "#17181a",
+              color: "#fbfaf8",
+              fontSize: 34,
+              fontWeight: 700,
+              position: "relative",
+            }}
+          >
+            K
             <div
               style={{
-                width: 104,
-                height: 104,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 52,
-                background: "#252018",
-                color: "#fff8e8",
-                border: "6px solid #c89332",
-                fontSize: 36,
-                fontWeight: 900,
-                fontFamily: "Arial, Helvetica, sans-serif",
-              }}
-            >
-              KC
-            </div>
-            <div
-              style={{
-                fontSize: 92,
-                lineHeight: 0.95,
-                fontWeight: 700,
-                maxWidth: 860,
-              }}
-            >
-              This week at Kharis Freetown
-            </div>
-            <div
-              style={{
-                width: 720,
-                height: 6,
-                background: "#c89332",
-                marginTop: 10,
+                position: "absolute",
+                right: 12,
+                bottom: 12,
+                width: 10,
+                height: 10,
+                borderRadius: 999,
+                background: "#2f6f52",
               }}
             />
           </div>
+        </div>
 
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div
             style={{
-              display: "flex",
-              gap: 16,
-              fontFamily: "Arial, Helvetica, sans-serif",
-              fontSize: 24,
-              fontWeight: 800,
-              color: "#6f6252",
+              fontSize: 88,
+              lineHeight: 1.02,
+              fontWeight: 700,
+              letterSpacing: -2,
+              maxWidth: 980,
             }}
           >
-            {["Main Auditorium", "Second Floor Room", "Balcony"].map((space) => (
-              <div
-                key={space}
-                style={{
-                  border: "3px solid #d7b66e",
-                  padding: "14px 18px",
-                  background: "#fffdf6",
-                }}
-              >
-                {space}
-              </div>
-            ))}
+            This week at Kharis Freetown
           </div>
+          <div style={{ display: "flex", width: "100%", height: 1, background: "#e6e4de" }} />
+        </div>
+
+        <div style={{ display: "flex", gap: 14 }}>
+          {["Main Auditorium", "Second Floor Room", "Balcony"].map((space) => (
+            <div
+              key={space}
+              style={{
+                display: "flex",
+                border: "1px solid #e6e4de",
+                borderRadius: 4,
+                padding: "12px 18px",
+                fontSize: 22,
+                fontWeight: 600,
+                color: "#6b6f72",
+              }}
+            >
+              {space}
+            </div>
+          ))}
         </div>
       </div>
     ),

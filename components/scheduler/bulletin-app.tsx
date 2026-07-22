@@ -8,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { Ban, Check, Pencil, Trash2 } from "lucide-react";
 import { createPortal } from "react-dom";
 import {
   cancelBookingAction,
@@ -221,16 +222,24 @@ export function BulletinApp({
   );
   const weekDays = useMemo(() => getWeekRange(today), [today]);
   const monthDays = useMemo(() => buildMonthGrid(monthCursor), [monthCursor]);
-  const publicWeekDays = useMemo(
-    () =>
-      weekDays
-        .map((day) => ({
-          day,
-          bookings: bookingsForDay(publicBookings, day),
-        }))
-        .filter(({ bookings }) => bookings.length > 0),
-    [publicBookings, weekDays],
-  );
+  const publicWeekDays = useMemo(() => {
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const upcoming = weekDays.filter(
+      (day) => day.getTime() >= todayStart.getTime(),
+    );
+    const past = weekDays.filter(
+      (day) => day.getTime() < todayStart.getTime(),
+    );
+
+    return [...upcoming, ...past]
+      .map((day) => ({
+        day,
+        bookings: bookingsForDay(publicBookings, day),
+      }))
+      .filter(({ bookings }) => bookings.length > 0);
+  }, [publicBookings, today, weekDays]);
   const selectedBookings = bookingsForDay(publicBookings, selectedDate, spaceFilter);
 
   const editableBookings = useMemo(() => {
@@ -512,7 +521,7 @@ export function BulletinApp({
           <BulletinHeader
             eyebrow="Full calendar"
             title={formatMonth(monthCursor)}
-            onMenu={() => setScreen("menu")}
+            onBack={goHome}
           />
 
           <div className="bulletin-calendar-toolbar">
@@ -635,7 +644,7 @@ export function BulletinApp({
                 : activeAccess.departmentName
             }
             title={editingBooking ? "Edit activity" : "Add activity"}
-            onMenu={() => setScreen("menu")}
+            onBack={goHome}
           />
           <BookingForm
             access={activeAccess}
@@ -673,7 +682,7 @@ export function BulletinApp({
                 : activeAccess.departmentName
             }
             title="Manage"
-            onMenu={() => setScreen("menu")}
+            onBack={goHome}
           />
           <div className="bulletin-title-rule">Editable activities</div>
           {manageNotice ? (
@@ -703,6 +712,7 @@ export function BulletinApp({
                           setScreen("add");
                         }}
                       >
+                        <Pencil size={14} strokeWidth={2} aria-hidden="true" />
                         Edit
                       </button>
                     ) : null}
@@ -710,7 +720,12 @@ export function BulletinApp({
                       <form action={confirmAction}>
                         <input type="hidden" name="accessCode" value={activeCode} />
                         <input type="hidden" name="bookingId" value={booking.id} />
-                        <button type="submit" disabled={confirmPending}>
+                        <button
+                          type="submit"
+                          className="bulletin-confirm-btn"
+                          disabled={confirmPending}
+                        >
+                          <Check size={14} strokeWidth={2} aria-hidden="true" />
                           Confirm
                         </button>
                       </form>
@@ -723,6 +738,7 @@ export function BulletinApp({
                         className="bulletin-cancel-btn"
                         disabled={cancelPending || booking.status === "cancelled"}
                       >
+                        <Ban size={14} strokeWidth={2} aria-hidden="true" />
                         Cancel
                       </button>
                     </form>
@@ -734,6 +750,7 @@ export function BulletinApp({
                         className="bulletin-delete-btn"
                         disabled={deletePending}
                       >
+                        <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
                         Delete
                       </button>
                     </form>
@@ -754,7 +771,9 @@ export function BulletinApp({
           {confirmState.message ? (
             <p
               className={
-                confirmState.ok ? "bulletin-message" : "bulletin-message error"
+                confirmState.ok === true
+                  ? "bulletin-message"
+                  : "bulletin-message error"
               }
             >
               {confirmState.message}
@@ -791,7 +810,7 @@ export function BulletinApp({
           <BulletinHeader
             eyebrow="Branch pastor"
             title="Dashboard"
-            onMenu={() => setScreen("menu")}
+            onBack={goHome}
           />
           <section className="bulletin-briefing">
             <p>{pastorSummary}</p>
@@ -964,10 +983,10 @@ export function BulletinApp({
         </section>
         <button
           type="button"
-          className="bulletin-primary"
+          className="bulletin-cta-link"
           onClick={() => setScreen("calendar")}
         >
-          Open full calendar
+          Open full calendar <span aria-hidden="true">&rarr;</span>
         </button>
         {renderAccessModal()}
       </div>
