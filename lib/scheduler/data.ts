@@ -640,7 +640,7 @@ export async function confirmBooking(
   const supabase = createServerSupabaseClient();
   const { data: existing, error: existingError } = await supabase
     .from("bookings")
-    .select("department_id, space_id, start_at, end_at")
+    .select("department_id, space_id, activity_type, start_at, end_at")
     .eq("id", bookingId)
     .maybeSingle();
 
@@ -671,6 +671,16 @@ export async function confirmBooking(
 
   if (hasHardSpaceConflict([occurrence], overlappingBookings)) {
     return { ok: false, message: "That space is unavailable for the selected time." };
+  }
+
+  const exceededDay = await getDailyLimitExceededDay(
+    [occurrence],
+    existing.activity_type,
+    bookingId,
+  );
+
+  if (exceededDay) {
+    return { ok: false, message: DAILY_LIMIT_EXCEEDED_MESSAGE };
   }
 
   const { error } = await supabase
