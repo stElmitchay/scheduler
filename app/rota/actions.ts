@@ -53,10 +53,7 @@ export async function unlockRotaAction(
       };
     }
 
-    const payload = await rota.getRotaPayload(
-      access.departmentId,
-      access.departmentName,
-    );
+    const payload = await rota.getRotaPayload(access.departmentId);
 
     return {
       ok: true,
@@ -72,7 +69,7 @@ export async function unlockRotaAction(
 
 export async function refreshRotaAction(token: string) {
   return withSession(token, (departmentId) =>
-    rota.getRotaPayload(departmentId, ""),
+    rota.getRotaPayload(departmentId),
   );
 }
 
@@ -114,7 +111,7 @@ export async function autoAssignAction(
       departmentId,
     ): Promise<{ period: PeriodPayload; unfilled: number }> => {
       const payload = await rota.openPeriod(departmentId, month);
-      const settings = await rota.getRotaPayload(departmentId, "");
+      const settings = await rota.getRotaPayload(departmentId);
 
       const taken = new Set(
         payload.assignments.map(
@@ -194,7 +191,7 @@ export async function savePersonAction(
 ) {
   return withSession(token, async (departmentId) => {
     await rota.savePerson(departmentId, input);
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }
 
@@ -206,7 +203,7 @@ export async function deletePersonAction(token: string, personId: string) {
       throw new Error(result.message);
     }
 
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }
 
@@ -218,14 +215,14 @@ export async function saveUnavailabilityAction(
 ) {
   return withSession(token, async (departmentId) => {
     await rota.saveUnavailability(departmentId, personId, startDate, endDate);
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }
 
 export async function deleteUnavailabilityAction(token: string, id: string) {
   return withSession(token, async (departmentId) => {
     await rota.deleteUnavailability(departmentId, id);
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }
 
@@ -239,14 +236,14 @@ export async function saveServiceAction(
 ) {
   return withSession(token, async (departmentId) => {
     await rota.saveService(departmentId, input);
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }
 
 export async function deleteServiceAction(token: string, serviceId: string) {
   return withSession(token, async (departmentId) => {
     await rota.deleteService(departmentId, serviceId);
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }
 
@@ -256,13 +253,13 @@ export async function saveSettingsAction(
 ) {
   return withSession(token, async (departmentId) => {
     await rota.saveSettings(departmentId, maxServesPerMonth);
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }
 
 export async function rotateShareSlugAction(token: string) {
   return withSession(token, async (departmentId) => {
     await rota.rotateShareSlug(departmentId);
-    return rota.getRotaPayload(departmentId, "");
+    return rota.getRotaPayload(departmentId);
   });
 }

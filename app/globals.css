@@ -288,7 +288,8 @@ select:focus-visible {
   border: 0;
 }
 
-.bulletin-menu-panel button {
+.bulletin-menu-panel button,
+.bulletin-menu-panel .bulletin-menu-link {
   display: grid;
   width: 100%;
   grid-template-columns: 1fr auto;
@@ -301,11 +302,13 @@ select:focus-visible {
   text-align: left;
 }
 
-.bulletin-menu-panel button:first-child {
+.bulletin-menu-panel button:first-child,
+.bulletin-menu-panel .bulletin-menu-link:first-child {
   padding-top: 0;
 }
 
-.bulletin-menu-panel button:last-child {
+.bulletin-menu-panel button:last-child,
+.bulletin-menu-panel .bulletin-menu-link:last-child {
   border-bottom: 0;
 }
 
@@ -1143,4 +1146,250 @@ select:focus-visible {
   .calendar-day-number {
     font-size: 13px;
   }
+}
+
+/* ---------- Serving rota ---------- */
+
+.bulletin-menu-panel .bulletin-menu-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.rota-lead {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rota-card {
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  padding: 14px;
+}
+
+.rota-card .bulletin-title-rule {
+  margin-top: 0;
+}
+
+.rota-role-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.rota-role-row input,
+.rota-role-row select {
+  flex: 1 1 140px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 10px;
+  font-size: 14px;
+}
+
+.rota-role-row input[type="number"] {
+  flex: 0 0 74px;
+}
+
+.rota-inline-label {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.rota-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.rota-actions button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 14px;
+  font-size: 13.5px;
+}
+
+.rota-summary p {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rota-summary strong {
+  color: var(--ink);
+}
+
+.rota-service {
+  margin-top: 14px;
+}
+
+.rota-service h3 {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.rota-service h3 small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.rota-role-block {
+  margin-top: 10px;
+}
+
+.rota-role-block h4 {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rota-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rota-slot {
+  flex: 1 1 150px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: transparent;
+  padding: 10px;
+  text-align: left;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.rota-slot.filled {
+  border-style: solid;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.rota-slot em {
+  display: block;
+  margin-top: 4px;
+  color: var(--pending);
+  font-size: 11.5px;
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.rota-picker {
+  max-height: 82vh;
+  overflow-y: auto;
+}
+
+.rota-candidates {
+  margin-top: 12px;
+  list-style: none;
+}
+
+.rota-candidate {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  padding: 11px 0;
+  text-align: left;
+}
+
+.rota-candidate.blocked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rota-candidate-name {
+  display: block;
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.rota-candidate-name small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.rota-candidate-warnings em {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.rota-candidate-warnings em.warn {
+  color: var(--pending);
+}
+
+.rota-candidate-warnings em.block {
+  color: var(--cancelled);
+}
+
+.rota-search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-top: 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  padding: 12px 0;
+}
+
+.rota-search label {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.rota-search input {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px;
+  font-size: 15px;
+}
+
+.rota-public-role {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin-top: 8px;
+  font-size: 13.5px;
+}
+
+.rota-public-role strong {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rota-card h2 {
+  font-size: 15px;
+  font-weight: 600;
 }

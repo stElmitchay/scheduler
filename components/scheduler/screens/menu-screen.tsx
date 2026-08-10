@@ -44,6 +44,13 @@ export function MenuScreen({
             </span>
             <b>›</b>
           </button>
+          <a href="/rota" className="bulletin-menu-link">
+            <span>
+              <strong>Serving rota</strong>
+              <small>Build and share your department rota</small>
+            </span>
+            <b>›</b>
+          </a>
         </nav>
       </div>
     </main>

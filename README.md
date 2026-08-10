@@ -40,3 +40,27 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Serving Rota
+
+Department leaders can build and share a monthly serving rota at `/rota`.
+
+- **Signing in** — enter your department access code, the same one used for
+  bookings. The session lasts until you close the tab, so a reload keeps you
+  signed in but a shared phone does not stay unlocked. Sessions also expire
+  after 12 hours.
+- **Serving days come from the calendar** — the rota reads confirmed bookings
+  with an activity type of `Service`. Configure which of those your department
+  serves at, and the roles under each, in *Services and roles*. Move or cancel a
+  service in the scheduler and the rota follows.
+- **Filling a month** — tap an empty slot and pick someone. The app warns when a
+  person is over their monthly cap, doing noticeably more than the rest of the
+  team, or serving several weeks in a row, and blocks anyone who is on break,
+  away, or already serving at that service. *Auto-generate* fills only the empty
+  slots and never changes a pick made by hand.
+- **Sharing** — a month stays a draft until you publish it. The share link under
+  *Services and roles* is public and read-only; ushers open it and search their
+  name to find their dates. Generating a new link stops the old one working.
+
+Run `supabase/rota-schema.sql` once against the Supabase project to create the
+rota tables.

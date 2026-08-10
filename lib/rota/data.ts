@@ -98,10 +98,21 @@ async function getServiceNameOptions(): Promise<string[]> {
 
 export async function getRotaPayload(
   departmentId: string,
-  departmentName: string,
 ): Promise<RotaPayload> {
   const supabase = createServerSupabaseClient();
   const settings = await ensureSettings(departmentId);
+
+  const { data: department, error: departmentError } = await supabase
+    .from("departments")
+    .select("name")
+    .eq("id", departmentId)
+    .single();
+
+  if (departmentError) {
+    throw new Error(departmentError.message);
+  }
+
+  const departmentName = department.name;
 
   const [servicesResult, peopleResult, periodsResult, serviceNameOptions] =
     await Promise.all([
