@@ -10,9 +10,7 @@ import {
 } from "@/app/actions";
 import {
   buildMonthGrid,
-  formatDateKey,
   getWeekRange,
-  isSameDate,
 } from "@/lib/scheduler/calendar-utils.mjs";
 import type {
   AccessContext,
@@ -22,17 +20,16 @@ import type {
 } from "@/lib/scheduler/types";
 import { BookingForm } from "./booking-form";
 import { AccessModal } from "./access-modal";
+import { CalendarScreen } from "./screens/calendar-screen";
 import { HomeScreen } from "./screens/home-screen";
 import { MenuScreen, type ProtectedTarget } from "./screens/menu-screen";
-import { BulletinHeader, EventItem } from "./bulletin-header";
+import { BulletinHeader } from "./bulletin-header";
 import {
   bookingLine,
   bookingsForDay,
   byStartTime,
   countByLabel,
   formatDateTime,
-  formatDayHeading,
-  formatMonth,
   formatTime,
   type SpaceFilter,
 } from "./format";
@@ -272,120 +269,25 @@ export function BulletinApp({
 
   if (screen === "calendar") {
     return (
-      <main className="bulletin-page">
-        <div className="bulletin-shell bulletin-shell-wide">
-          <BulletinHeader
-            eyebrow="Full calendar"
-            title={formatMonth(monthCursor)}
-            onBack={goHome}
-          />
-
-          <div className="bulletin-calendar-toolbar">
-            <button type="button" onClick={() => shiftMonth(-1)}>
-              Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const now = new Date();
-                setMonthCursor(now);
-                setSelectedDate(now);
-              }}
-            >
-              Today
-            </button>
-            <button type="button" onClick={() => shiftMonth(1)}>
-              Next
-            </button>
-          </div>
-
-          <div className="bulletin-filters" aria-label="Space filters">
-            <button
-              type="button"
-              className={spaceFilter === "all" ? "active" : ""}
-              onClick={() => setSpaceFilter("all")}
-            >
-              All activities
-            </button>
-            {spaces.map((space) => (
-              <button
-                type="button"
-                key={space.id}
-                className={spaceFilter === space.id ? "active" : ""}
-                onClick={() => setSpaceFilter(space.id)}
-              >
-                {space.name}
-              </button>
-            ))}
-          </div>
-
-          <section className="bulletin-calendar-scroll">
-            <section className="calendar-app-grid" aria-label="Monthly calendar">
-              {[
-                ["Sun", "S"],
-                ["Mon", "M"],
-                ["Tue", "T"],
-                ["Wed", "W"],
-                ["Thu", "T"],
-                ["Fri", "F"],
-                ["Sat", "S"],
-              ].map(([full, short]) => (
-                <div className="calendar-weekday" key={full}>
-                  <span className="calendar-weekday-full">{full}</span>
-                  <span className="calendar-weekday-short">{short}</span>
-                </div>
-              ))}
-              {monthDays.map((day) => {
-                const dayBookings = bookingsForDay(publicBookings, day, spaceFilter);
-                const isSelected = isSameDate(day, selectedDate);
-                const isOutsideMonth = day.getMonth() !== monthCursor.getMonth();
-
-                return (
-                  <button
-                    type="button"
-                    key={formatDateKey(day)}
-                    className={[
-                      "calendar-day-cell",
-                      isSelected ? "selected" : "",
-                      isOutsideMonth ? "outside" : "",
-                    ].join(" ")}
-                    onClick={() => setSelectedDate(day)}
-                  >
-                    <span className="calendar-day-number">{day.getDate()}</span>
-                    {dayBookings.length > 0 ? (
-                      <span className="calendar-day-count" aria-hidden="true">
-                        {dayBookings.length}
-                      </span>
-                    ) : null}
-                    <span className="calendar-day-events">
-                      {dayBookings.slice(0, 2).map((booking) => (
-                        <span key={booking.id}>{booking.activityName}</span>
-                      ))}
-                      {dayBookings.length > 2 ? (
-                        <em>+{dayBookings.length - 2} more</em>
-                      ) : null}
-                    </span>
-                  </button>
-                );
-              })}
-            </section>
-          </section>
-
-          <section className="bulletin-section">
-            <h2>{formatDayHeading(selectedDate)}</h2>
-            {calendarNotice ? (
-              <p className="bulletin-message">{calendarNotice}</p>
-            ) : null}
-            {selectedBookings.length === 0 ? (
-              <p className="bulletin-empty">No activities for this date.</p>
-            ) : (
-              selectedBookings.map((booking) => (
-                <EventItem booking={booking} key={booking.id} />
-              ))
-            )}
-          </section>
-        </div>
-      </main>
+      <CalendarScreen
+        monthCursor={monthCursor}
+        monthDays={monthDays}
+        selectedDate={selectedDate}
+        selectedBookings={selectedBookings}
+        publicBookings={publicBookings}
+        spaces={spaces}
+        spaceFilter={spaceFilter}
+        notice={calendarNotice}
+        onBack={goHome}
+        onShiftMonth={shiftMonth}
+        onToday={() => {
+          const now = new Date();
+          setMonthCursor(now);
+          setSelectedDate(now);
+        }}
+        onSelectDate={setSelectedDate}
+        onSpaceFilterChange={setSpaceFilter}
+      />
     );
   }
 
