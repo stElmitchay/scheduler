@@ -295,10 +295,31 @@ export async function saveService(
     }
   }
 
-  if (input.roles.length > 0) {
+  // Existing and new roles are written separately. PostgREST rejects a bulk
+  // write whose objects do not all carry the same keys, so a batch mixing rows
+  // that have an id with rows that do not fails outright.
+  const updated = input.roles.filter((role) => role.id);
+  const inserted = input.roles.filter((role) => !role.id);
+
+  if (updated.length > 0) {
     const { error } = await supabase.from("rota_role").upsert(
-      input.roles.map((role) => ({
-        ...(role.id ? { id: role.id } : {}),
+      updated.map((role) => ({
+        id: role.id,
+        rota_service_id: service.id,
+        name: role.name.trim(),
+        slot_count: role.slotCount,
+        sort_order: role.sortOrder,
+      })),
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  if (inserted.length > 0) {
+    const { error } = await supabase.from("rota_role").insert(
+      inserted.map((role) => ({
         rota_service_id: service.id,
         name: role.name.trim(),
         slot_count: role.slotCount,
