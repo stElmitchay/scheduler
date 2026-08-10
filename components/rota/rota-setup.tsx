@@ -175,6 +175,13 @@ export function RotaSetup({
                 </div>
               ))}
 
+              {roles.length === 0 ? (
+                <p className="rota-lead">
+                  Add a role for each post you fill at this service. Everyone you
+                  place in a post is on duty — there is no separate list.
+                </p>
+              ) : null}
+
               {drafts[service.id] ? (
                 <p className="rota-unsaved">Unsaved changes</p>
               ) : null}
@@ -243,10 +250,12 @@ export function RotaSetup({
                 className="bulletin-primary"
                 disabled={busy || newService === ""}
                 onClick={async () => {
+                  // No default role: the posts below are the people on duty,
+                  // so a generic bucket alongside them would double-count.
                   const next = await run(() =>
                     saveServiceAction(token, {
                       serviceName: newService,
-                      roles: [{ name: "Usher", slotCount: 2, sortOrder: 0 }],
+                      roles: [],
                     }),
                   );
 
