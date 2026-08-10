@@ -1,20 +1,11 @@
 "use client";
 
-import {
-  type FormEvent,
-  useActionState,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useActionState, useMemo, useState } from "react";
 import { Ban, Check, Pencil, Trash2 } from "lucide-react";
-import { createPortal } from "react-dom";
 import {
   cancelBookingAction,
   confirmBookingAction,
   deleteBookingAction,
-  unlockAccessAction,
   type FormActionState,
 } from "@/app/actions";
 import {
@@ -30,6 +21,7 @@ import type {
   Space,
 } from "@/lib/scheduler/types";
 import { BookingForm } from "./booking-form";
+import { AccessModal } from "./access-modal";
 import { BulletinHeader, EventItem } from "./bulletin-header";
 import {
   bookingLine,
@@ -66,18 +58,13 @@ export function BulletinApp({
   const [spaceFilter, setSpaceFilter] = useState<SpaceFilter>("all");
   const [monthCursor, setMonthCursor] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [accessCode, setAccessCode] = useState("");
   const [activeCode, setActiveCode] = useState("");
   const [activeAccess, setActiveAccess] = useState<AccessContext | null>(null);
-  const [accessMessage, setAccessMessage] = useState("");
-  const [accessMessageIsError, setAccessMessageIsError] = useState(false);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
   const [calendarNotice, setCalendarNotice] = useState("");
   const [manageNotice, setManageNotice] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [protectedTarget, setProtectedTarget] = useState<ProtectedTarget>("add");
-  const pendingCode = useRef("");
-  const [unlockPending, startUnlockTransition] = useTransition();
   const [cancelState, cancelAction, cancelPending] = useActionState(
     cancelBookingAction,
     initialCancelState,
@@ -141,100 +128,7 @@ export function BulletinApp({
 
   function openProtected(target: ProtectedTarget) {
     setProtectedTarget(target);
-    setAccessCode("");
-    setAccessMessage("");
-    setAccessMessageIsError(false);
     setAccessModalOpen(true);
-  }
-
-  function handleAccessSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const submittedCode = accessCode;
-    pendingCode.current = submittedCode;
-
-    startUnlockTransition(async () => {
-      const result = await unlockAccessAction(
-        { ok: false, message: "", access: null },
-        formData,
-      );
-
-      if (!result.ok) {
-        setAccessMessage(result.message);
-        setAccessMessageIsError(true);
-        return;
-      }
-
-      if (protectedTarget === "pastor" && result.access.kind !== "pastor") {
-        setAccessMessage("Pastor code required.");
-        setAccessMessageIsError(true);
-        return;
-      }
-
-      setAccessMessage(result.message);
-      setAccessMessageIsError(false);
-      setActiveCode(submittedCode);
-      setActiveAccess(result.access);
-      setEditingId(null);
-      setAccessModalOpen(false);
-      setScreen(protectedTarget);
-    });
-  }
-
-  function renderAccessModal() {
-    if (!accessModalOpen) {
-      return null;
-    }
-
-    const modal = (
-      <div className="bulletin-modal-backdrop" role="presentation">
-        <div
-          className="bulletin-access-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="access-modal-title"
-        >
-          <button
-            type="button"
-            className="bulletin-modal-close"
-            onClick={() => setAccessModalOpen(false)}
-            aria-label="Close access code popup"
-          >
-            ×
-          </button>
-          <h2 id="access-modal-title">Enter access code</h2>
-          <form className="bulletin-form" onSubmit={handleAccessSubmit}>
-            <label>
-              Access code
-              <input
-                name="accessCode"
-                value={accessCode}
-                onChange={(event) => setAccessCode(event.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <button type="submit" className="bulletin-primary" disabled={unlockPending}>
-              {unlockPending ? "Checking..." : "Continue"}
-            </button>
-          </form>
-          {accessMessage ? (
-            <p
-              className={
-                accessMessageIsError ? "bulletin-message error" : "bulletin-message"
-              }
-            >
-              {accessMessage}
-            </p>
-          ) : null}
-        </div>
-      </div>
-    );
-
-    if (typeof document === "undefined") {
-      return null;
-    }
-
-    return createPortal(modal, document.body);
   }
 
   function shiftMonth(amount: number) {
@@ -387,7 +281,18 @@ export function BulletinApp({
               <b>›</b>
             </button>
           </nav>
-          {renderAccessModal()}
+          <AccessModal
+          open={accessModalOpen}
+          requirePastor={protectedTarget === "pastor"}
+          onClose={() => setAccessModalOpen(false)}
+          onUnlocked={(access, code) => {
+            setActiveCode(code);
+            setActiveAccess(access);
+            setEditingId(null);
+            setAccessModalOpen(false);
+            setScreen(protectedTarget);
+          }}
+        />
         </div>
       </main>
     );
@@ -867,7 +772,18 @@ export function BulletinApp({
         >
           Open full calendar <span aria-hidden="true">&rarr;</span>
         </button>
-        {renderAccessModal()}
+        <AccessModal
+          open={accessModalOpen}
+          requirePastor={protectedTarget === "pastor"}
+          onClose={() => setAccessModalOpen(false)}
+          onUnlocked={(access, code) => {
+            setActiveCode(code);
+            setActiveAccess(access);
+            setEditingId(null);
+            setAccessModalOpen(false);
+            setScreen(protectedTarget);
+          }}
+        />
       </div>
     </main>
   );
