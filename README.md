@@ -63,4 +63,5 @@ Department leaders can build and share a monthly serving rota at `/rota`.
   name to find their dates. Generating a new link stops the old one working.
 
 Run `supabase/rota-schema.sql` once against the Supabase project to create the
-rota tables.
+rota tables, and set `NEXT_PUBLIC_SITE_URL` to the deployed URL so the share link
+points there rather than at localhost.

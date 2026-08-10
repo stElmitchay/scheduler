@@ -7,6 +7,7 @@ import {
   saveServiceAction,
   saveSettingsAction,
 } from "@/app/rota/actions";
+import { buildShareUrl } from "@/lib/rota/share-url";
 import type { RotaActionResult, RotaPayload, RotaService } from "@/lib/rota/types";
 
 type RoleDraft = { id?: string; name: string; slotCount: number };
@@ -44,7 +45,7 @@ export function RotaSetup({
   // Derived rather than synced from props: after a save the payload carries the
   // new value, so a local copy only needs to exist while it is being edited.
   const cap = capDraft ?? payload.settings.maxServesPerMonth;
-  const sharePath = `/r/${payload.settings.shareSlug}`;
+  const shareUrl = buildShareUrl(payload.settings.shareSlug);
 
   function rolesFor(service: RotaService) {
     return drafts[service.id] ?? toDraft(service);
@@ -308,13 +309,16 @@ export function RotaSetup({
             a code.
           </p>
           <div className="rota-role-row">
-            <input readOnly value={sharePath} aria-label="Share link" />
+            <input
+                readOnly
+                value={shareUrl}
+                aria-label="Share link"
+                onFocus={(event) => event.currentTarget.select()}
+              />
             <button
               type="button"
               onClick={async () => {
-                await navigator.clipboard.writeText(
-                  `${window.location.origin}${sharePath}`,
-                );
+                await navigator.clipboard.writeText(shareUrl);
                 setCopied(true);
                 window.setTimeout(() => setCopied(false), 2000);
               }}

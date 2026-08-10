@@ -30,6 +30,11 @@ Required in `.env.local`:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ACCESS_CODE_PEPPER` — pepper for SHA-256 access code hashing
 
+Optional:
+- `NEXT_PUBLIC_SITE_URL` — public base URL used to build the rota share link
+  (e.g. `https://kcf-schedule.vercel.app`). Falls back to `window.location.origin`,
+  which is wrong when a leader builds the rota on localhost and shares the link.
+
 ## Architecture
 
 This is a single-route Next.js App Router app for Kharis Church (Freetown) — a space booking scheduler.

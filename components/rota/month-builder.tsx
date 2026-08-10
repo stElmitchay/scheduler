@@ -10,6 +10,7 @@ import {
 } from "@/app/rota/actions";
 import type { EmptySlot } from "@/lib/rota/auto-assign.mjs";
 import { checkCandidate, summarizePeriod } from "@/lib/rota/fairness.mjs";
+import { buildShareUrl } from "@/lib/rota/share-url";
 import type { FairnessContext } from "@/lib/rota/fairness.mjs";
 import type {
   PeriodPayload,
@@ -58,6 +59,7 @@ export function MonthBuilder({
   const [autoNotice, setAutoNotice] = useState("");
   const [showPast, setShowPast] = useState(false);
   const [justPublished, setJustPublished] = useState(false);
+  const shareUrl = buildShareUrl(payload.settings.shareSlug);
   const [copied, setCopied] = useState(false);
 
   const todayKey = useMemo(() => {
@@ -468,7 +470,7 @@ export function MonthBuilder({
                   <input
                     readOnly
                     aria-label="Share link"
-                    value={`${window.location.origin}/r/${payload.settings.shareSlug}`}
+                    value={shareUrl}
                     onFocus={(event) => event.currentTarget.select()}
                   />
                 </div>
@@ -476,9 +478,7 @@ export function MonthBuilder({
                   <button
                     type="button"
                     onClick={async () => {
-                      await navigator.clipboard.writeText(
-                        `${window.location.origin}/r/${payload.settings.shareSlug}`,
-                      );
+                      await navigator.clipboard.writeText(shareUrl);
                       setCopied(true);
                     }}
                   >
@@ -486,7 +486,7 @@ export function MonthBuilder({
                   </button>
                   <a
                     className="rota-open-link"
-                    href={`/r/${payload.settings.shareSlug}`}
+                    href={shareUrl}
                     target="_blank"
                     rel="noreferrer"
                   >
