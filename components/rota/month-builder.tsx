@@ -55,6 +55,15 @@ export function MonthBuilder({
 }) {
   const [picker, setPicker] = useState<PickerSlot | null>(null);
   const [autoNotice, setAutoNotice] = useState("");
+  const [showPast, setShowPast] = useState(false);
+
+  const todayKey = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
 
   const rolesByService = useMemo(() => {
     const map = new Map<string, RotaPayload["services"][number]["roles"]>();
@@ -102,10 +111,21 @@ export function MonthBuilder({
 
   const summary = useMemo(() => summarizePeriod(context), [context]);
 
+  const upcoming = useMemo(
+    () =>
+      period.occurrences.filter(
+        (occurrence) => occurrence.startAt.slice(0, 10) >= todayKey,
+      ),
+    [period.occurrences, todayKey],
+  );
+
+  const pastCount = period.occurrences.length - upcoming.length;
+  const visible = showPast ? period.occurrences : upcoming;
+
   const days = useMemo(() => {
     const grouped = new Map<string, RotaOccurrence[]>();
 
-    for (const occurrence of period.occurrences) {
+    for (const occurrence of visible) {
       const key = occurrence.startAt.slice(0, 10);
       grouped.set(key, [...(grouped.get(key) ?? []), occurrence]);
     }
@@ -118,12 +138,12 @@ export function MonthBuilder({
           a.startAt.localeCompare(b.startAt),
         ),
       }));
-  }, [period.occurrences]);
+  }, [visible]);
 
   const allSlots = useMemo<EmptySlot[]>(() => {
     const slots: EmptySlot[] = [];
 
-    for (const occurrence of period.occurrences) {
+    for (const occurrence of visible) {
       for (const role of rolesByService.get(occurrence.rotaServiceId) ?? []) {
         for (let index = 0; index < role.slotCount; index += 1) {
           slots.push({
@@ -138,9 +158,14 @@ export function MonthBuilder({
     }
 
     return slots;
-  }, [period.occurrences, rolesByService]);
+  }, [visible, rolesByService]);
 
-  const filledCount = period.assignments.length;
+  const visibleBookingIds = new Set(
+    visible.map((occurrence) => occurrence.bookingId),
+  );
+  const filledCount = period.assignments.filter((assignment) =>
+    visibleBookingIds.has(assignment.bookingId),
+  ).length;
   const published = period.period.status === "published";
 
   function assignedTo(bookingId: string, roleId: string, slotIndex: number) {
@@ -209,10 +234,23 @@ export function MonthBuilder({
           </p>
         ) : null}
 
+        {pastCount > 0 ? (
+          <button
+            type="button"
+            className="rota-past-toggle"
+            onClick={() => setShowPast(!showPast)}
+          >
+            {showPast
+              ? `Hide ${pastCount} date${pastCount === 1 ? "" : "s"} already gone`
+              : `Show ${pastCount} date${pastCount === 1 ? "" : "s"} already gone`}
+          </button>
+        ) : null}
+
         {allSlots.length === 0 ? (
           <p className="bulletin-empty">
-            No services on the calendar for this month, or no roles set up yet.
-            Check Services and roles.
+            {pastCount > 0
+              ? "Every date in this month has passed."
+              : "No services on the calendar for this month, or no roles set up yet. Check Services and roles."}
           </p>
         ) : null}
 
