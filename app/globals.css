@@ -1422,3 +1422,12 @@ select:focus-visible {
   font-size: 12.5px;
   text-decoration: underline;
 }
+
+.rota-open-link {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 18px;
+  color: var(--ink);
+  font-size: 13.5px;
+  text-decoration: none;
+}

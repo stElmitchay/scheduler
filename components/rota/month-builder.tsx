@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   autoAssignAction,
   publishPeriodAction,
@@ -56,6 +57,8 @@ export function MonthBuilder({
   const [picker, setPicker] = useState<PickerSlot | null>(null);
   const [autoNotice, setAutoNotice] = useState("");
   const [showPast, setShowPast] = useState(false);
+  const [justPublished, setJustPublished] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const todayKey = useMemo(() => {
     const now = new Date();
@@ -418,11 +421,16 @@ export function MonthBuilder({
 
                 if (next) {
                   onChanged(next);
-                  setAutoNotice(
-                    published
-                      ? "Unpublished. The share link no longer shows this month."
-                      : "Published. The share link now shows this month.",
-                  );
+
+                  if (published) {
+                    setAutoNotice(
+                      "Unpublished. The share link no longer shows this month.",
+                    );
+                  } else {
+                    setAutoNotice("");
+                    setCopied(false);
+                    setJustPublished(true);
+                  }
                 }
               }}
             >
@@ -431,6 +439,65 @@ export function MonthBuilder({
           </div>
         ) : null}
       </div>
+
+      {justPublished && typeof document !== "undefined"
+        ? createPortal(
+            <div className="bulletin-modal-backdrop" role="presentation">
+              <div
+                className="bulletin-access-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="rota-published-title"
+              >
+                <button
+                  type="button"
+                  className="bulletin-modal-close"
+                  onClick={() => setJustPublished(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <h2 id="rota-published-title">
+                  {formatMonthLabel(period.period.month)} is live
+                </h2>
+                <p className="rota-lead">
+                  Share this link with the team. Anyone who opens it can see the
+                  rota and search for their own name. No code needed.
+                </p>
+                <div className="rota-role-row">
+                  <input
+                    readOnly
+                    aria-label="Share link"
+                    value={`${window.location.origin}/r/${payload.settings.shareSlug}`}
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                </div>
+                <div className="rota-actions">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        `${window.location.origin}/r/${payload.settings.shareSlug}`,
+                      );
+                      setCopied(true);
+                    }}
+                  >
+                    {copied ? "Copied" : "Copy link"}
+                  </button>
+                  <a
+                    className="rota-open-link"
+                    href={`/r/${payload.settings.shareSlug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open it
+                  </a>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       <PersonPicker
         slot={picker}
