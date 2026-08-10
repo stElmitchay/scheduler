@@ -17,20 +17,15 @@ import type {
   Department,
   Space,
 } from "@/lib/scheduler/types";
-import { BookingForm } from "./booking-form";
 import { AccessModal } from "./access-modal";
+import { AddScreen } from "./screens/add-screen";
 import { CalendarScreen } from "./screens/calendar-screen";
 import { HomeScreen } from "./screens/home-screen";
 import { ManageScreen } from "./screens/manage-screen";
+import { PastorScreen } from "./screens/pastor-screen";
 import { MenuScreen, type ProtectedTarget } from "./screens/menu-screen";
-import { BulletinHeader } from "./bulletin-header";
 import {
-  bookingLine,
   bookingsForDay,
-  byStartTime,
-  countByLabel,
-  formatDateTime,
-  formatTime,
   type SpaceFilter,
 } from "./format";
 
@@ -160,89 +155,6 @@ export function BulletinApp({
     setScreen("calendar");
   }
 
-  const pastorMetrics = {
-    weeklyBookings: weekDays.flatMap((day) =>
-      bookingsForDay(confirmedBookings, day),
-    ),
-    pendingBookings: bookings
-      .filter((booking) => booking.status === "pending")
-      .sort(byStartTime),
-    upcomingBookings: confirmedBookings
-      .filter((booking) => {
-        const endOfRange = new Date(today);
-        endOfRange.setDate(today.getDate() + 7);
-
-        return (
-          new Date(booking.endAt) >= today &&
-          new Date(booking.startAt) < endOfRange
-        );
-      })
-      .sort(byStartTime)
-      .slice(0, 6),
-  };
-  const pastorDashboard = {
-    activeDepartments: new Set(
-      pastorMetrics.weeklyBookings.map((booking) => booking.departmentId),
-    ).size,
-    activityTypes: countByLabel(
-      pastorMetrics.weeklyBookings,
-      (booking) => booking.activityType,
-    ),
-    departments: countByLabel(
-      pastorMetrics.weeklyBookings,
-      (booking) => booking.departmentName,
-    ).slice(0, 6),
-    spaces: spaces.map((space) => ({
-      label: space.name,
-      count: pastorMetrics.weeklyBookings.filter(
-        (booking) => booking.spaceId === space.id,
-      ).length,
-    })),
-    today: bookingsForDay(confirmedBookings, today),
-    weekly: pastorMetrics.weeklyBookings.length,
-    pending: pastorMetrics.pendingBookings.length,
-  };
-  const maxSpaceUse = Math.max(
-    1,
-    ...pastorDashboard.spaces.map((space) => space.count),
-  );
-  const maxDepartmentUse = Math.max(
-    1,
-    ...pastorDashboard.departments.map((department) => department.count),
-  );
-  const topDepartment = pastorDashboard.departments[0];
-  const topSpace = pastorDashboard.spaces
-    .filter((space) => space.count > 0)
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))[0];
-  const topActivityType = pastorDashboard.activityTypes[0];
-  const pastorSummary =
-    pastorDashboard.weekly === 0
-      ? "There are no confirmed activities on the calendar this week yet."
-      : `This week, ${pastorDashboard.activeDepartments} ${
-          pastorDashboard.activeDepartments === 1 ? "department has" : "departments have"
-        } ${pastorDashboard.weekly} confirmed ${
-          pastorDashboard.weekly === 1 ? "activity" : "activities"
-        }. ${
-          topDepartment
-            ? `${topDepartment.label} is the most active department`
-            : "No department is leading activity yet"
-        }${
-          topSpace ? `, and ${topSpace.label} is the busiest space` : ""
-        }. ${
-          pastorDashboard.pending === 0
-            ? "There are no bookings awaiting confirmation."
-            : `${pastorDashboard.pending} ${
-                pastorDashboard.pending === 1
-                  ? "booking is pending and still needs to be confirmed."
-                  : "bookings are pending and still need to be confirmed."
-              }`
-        }`;
-  const pastorActivitySummary = topActivityType
-    ? `Most activity this week is ${
-        topActivityType.label === "Service" ? "services" : `${topActivityType.label.toLowerCase()} activities`
-      }.`
-    : "";
-
   if (screen === "menu") {
     return (
       <>
@@ -293,39 +205,19 @@ export function BulletinApp({
 
   if (screen === "add" && activeAccess) {
     return (
-      <main className="bulletin-page">
-        <div className="bulletin-shell">
-          <BulletinHeader
-            eyebrow={
-              activeAccess.kind === "pastor"
-                ? "Branch pastor"
-                : activeAccess.departmentName
-            }
-            title={editingBooking ? "Edit activity" : "Add activity"}
-            onBack={goHome}
-          />
-          <BookingForm
-            access={activeAccess}
-            accessCode={activeCode}
-            booking={editingBooking}
-            departments={departments}
-            onSaved={handleFormSaved}
-            spaces={spaces}
-          />
-          {editingBooking ? (
-            <button
-              type="button"
-              className="bulletin-secondary-full"
-              onClick={() => {
-                setEditingId(null);
-                setScreen("manage");
-              }}
-            >
-              Stop editing
-            </button>
-          ) : null}
-        </div>
-      </main>
+      <AddScreen
+        access={activeAccess}
+        activeCode={activeCode}
+        booking={editingBooking}
+        departments={departments}
+        spaces={spaces}
+        onBack={goHome}
+        onSaved={handleFormSaved}
+        onStopEditing={() => {
+          setEditingId(null);
+          setScreen("manage");
+        }}
+      />
     );
   }
 
@@ -360,156 +252,14 @@ export function BulletinApp({
 
   if (screen === "pastor" && activeAccess?.kind === "pastor") {
     return (
-      <main className="bulletin-page">
-        <div className="bulletin-shell">
-          <BulletinHeader
-            eyebrow="Branch pastor"
-            title="Dashboard"
-            onBack={goHome}
-          />
-          <section className="bulletin-briefing">
-            <p>{pastorSummary}</p>
-            {pastorActivitySummary ? <small>{pastorActivitySummary}</small> : null}
-          </section>
-          <section className="bulletin-metrics bulletin-metrics-compact">
-            <div>
-              <strong>{pastorDashboard.weekly}</strong>
-              <span>This week</span>
-            </div>
-            <div>
-              <strong>{pastorDashboard.pending}</strong>
-              <span>Pending</span>
-            </div>
-            <div>
-              <strong>{pastorDashboard.today.length}</strong>
-              <span>Today</span>
-            </div>
-            <div>
-              <strong>{pastorDashboard.activeDepartments}</strong>
-              <span>Active departments</span>
-            </div>
-          </section>
-
-          <section className="bulletin-dashboard-section">
-            <h2>Department activity this week</h2>
-            {pastorDashboard.departments.length === 0 ? (
-              <p className="bulletin-empty">No active departments this week.</p>
-            ) : (
-              <div className="bulletin-department-grid">
-                {pastorDashboard.departments.map((item) => (
-                  <div className="bulletin-department-row" key={item.label}>
-                    <div>
-                      <span>{item.label}</span>
-                      <i>
-                        <b
-                          style={{
-                            width: `${(item.count / maxDepartmentUse) * 100}%`,
-                          }}
-                        />
-                      </i>
-                    </div>
-                    <strong>{item.count}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="bulletin-dashboard-grid">
-            <div className="bulletin-dashboard-section">
-              <h2>Activity mix</h2>
-              {pastorDashboard.activityTypes.length === 0 ? (
-                <p className="bulletin-empty compact">No activity types yet.</p>
-              ) : (
-                <div className="bulletin-chip-grid">
-                  {pastorDashboard.activityTypes.map((item) => (
-                    <span className="bulletin-insight-chip" key={item.label}>
-                      <strong>{item.count}</strong>
-                      {item.label}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="bulletin-dashboard-section">
-              <h2>Space usage</h2>
-              {pastorDashboard.spaces.map((item) => (
-                <div className="bulletin-usage-row" key={item.label}>
-                  <div>
-                    <span>{item.label}</span>
-                    <strong>{item.count}</strong>
-                  </div>
-                  <i>
-                    <b style={{ width: `${(item.count / maxSpaceUse) * 100}%` }} />
-                  </i>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="bulletin-dashboard-grid">
-            <details className="bulletin-dashboard-details">
-              <summary>
-                <span>Upcoming 7 days</span>
-                <strong>{pastorMetrics.upcomingBookings.length}</strong>
-              </summary>
-              {pastorMetrics.upcomingBookings.length === 0 ? (
-                <p className="bulletin-empty compact">
-                  No confirmed upcoming activities.
-                </p>
-              ) : (
-                <div className="bulletin-compact-events">
-                  {pastorMetrics.upcomingBookings.map((booking) => (
-                    <div className="bulletin-compact-event" key={booking.id}>
-                      <time>{formatDateTime(booking.startAt)}</time>
-                      <span>{booking.activityName}</span>
-                      <small>{bookingLine(booking)}</small>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </details>
-
-            <details className="bulletin-dashboard-details">
-              <summary>
-                <span>Pending confirmation</span>
-                <strong>{pastorMetrics.pendingBookings.length}</strong>
-              </summary>
-              {pastorMetrics.pendingBookings.length === 0 ? (
-                <p className="bulletin-empty compact">No pending bookings.</p>
-              ) : (
-                <div className="bulletin-compact-events">
-                  {pastorMetrics.pendingBookings.slice(0, 5).map((booking) => (
-                    <div className="bulletin-compact-event pending" key={booking.id}>
-                      <time>{formatDateTime(booking.startAt)}</time>
-                      <span>{booking.activityName}</span>
-                      <small>{bookingLine(booking)}</small>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </details>
-          </section>
-
-          <div className="bulletin-title-rule">Today</div>
-          {pastorDashboard.today.length === 0 ? (
-            <p className="bulletin-empty">No confirmed activities today.</p>
-          ) : (
-            <div className="bulletin-compact-events">
-              {pastorDashboard.today.map((booking) => (
-                <div className="bulletin-compact-event" key={booking.id}>
-                  <time>
-                    {formatTime(booking.startAt)} - {formatTime(booking.endAt)}
-                  </time>
-                  <span>{booking.activityName}</span>
-                  <small>{bookingLine(booking)}</small>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+      <PastorScreen
+        bookings={bookings}
+        confirmedBookings={confirmedBookings}
+        spaces={spaces}
+        weekDays={weekDays}
+        today={today}
+        onBack={goHome}
+      />
     );
   }
 
