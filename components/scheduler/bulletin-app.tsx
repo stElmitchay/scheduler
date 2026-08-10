@@ -22,12 +22,9 @@ import { AddScreen } from "./screens/add-screen";
 import { CalendarScreen } from "./screens/calendar-screen";
 import { HomeScreen } from "./screens/home-screen";
 import { ManageScreen } from "./screens/manage-screen";
-import { PastorScreen } from "./screens/pastor-screen";
 import { MenuScreen, type ProtectedTarget } from "./screens/menu-screen";
-import {
-  bookingsForDay,
-  type SpaceFilter,
-} from "./format";
+import { PastorScreen } from "./screens/pastor-screen";
+import { bookingsForDay, type SpaceFilter } from "./format";
 
 type Screen = "home" | "menu" | "calendar" | "add" | "manage" | "pastor";
 
