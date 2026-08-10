@@ -22,6 +22,8 @@ import type {
 } from "@/lib/scheduler/types";
 import { BookingForm } from "./booking-form";
 import { AccessModal } from "./access-modal";
+import { HomeScreen } from "./screens/home-screen";
+import { MenuScreen, type ProtectedTarget } from "./screens/menu-screen";
 import { BulletinHeader, EventItem } from "./bulletin-header";
 import {
   bookingLine,
@@ -31,13 +33,11 @@ import {
   formatDateTime,
   formatDayHeading,
   formatMonth,
-  formatShortDay,
   formatTime,
   type SpaceFilter,
 } from "./format";
 
 type Screen = "home" | "menu" | "calendar" | "add" | "manage" | "pastor";
-type ProtectedTarget = "add" | "manage" | "pastor";
 
 const initialCancelState: FormActionState = {
   ok: false,
@@ -248,40 +248,13 @@ export function BulletinApp({
 
   if (screen === "menu") {
     return (
-      <main className="bulletin-page">
-        <div className="bulletin-shell">
-          <BulletinHeader eyebrow="Kharis Church" title="Menu" onBack={goHome} />
-          <nav className="bulletin-menu-panel" aria-label="Scheduler menu">
-            <button type="button" onClick={() => openProtected("add")}>
-              <span>
-                <strong>Add activity</strong>
-                <small>Add a space booking or church activity</small>
-              </span>
-              <b>+</b>
-            </button>
-            <button type="button" onClick={() => openProtected("manage")}>
-              <span>
-                <strong>Manage activities</strong>
-                <small>Edit, confirm, or cancel what you own</small>
-              </span>
-              <b>›</b>
-            </button>
-            <button type="button" onClick={() => openProtected("pastor")}>
-              <span>
-                <strong>Pastor dashboard</strong>
-                <small>Pastor code required</small>
-              </span>
-              <b>›</b>
-            </button>
-            <button type="button" onClick={() => setScreen("calendar")}>
-              <span>
-                <strong>Full calendar</strong>
-                <small>Public month view and space filters</small>
-              </span>
-              <b>›</b>
-            </button>
-          </nav>
-          <AccessModal
+      <>
+        <MenuScreen
+          onBack={goHome}
+          onOpenProtected={openProtected}
+          onOpenCalendar={() => setScreen("calendar")}
+        />
+        <AccessModal
           open={accessModalOpen}
           requirePastor={protectedTarget === "pastor"}
           onClose={() => setAccessModalOpen(false)}
@@ -293,8 +266,7 @@ export function BulletinApp({
             setScreen(protectedTarget);
           }}
         />
-        </div>
-      </main>
+      </>
     );
   }
 
@@ -743,36 +715,13 @@ export function BulletinApp({
   }
 
   return (
-    <main className="bulletin-page">
-      <div className="bulletin-shell">
-        <BulletinHeader
-          eyebrow="Kharis Church"
-          title="Freetown"
-          onMenu={() => setScreen("menu")}
-        />
-        <div className="bulletin-title-rule">This week at Kharis Freetown</div>
-        <section className="bulletin-week-list">
-          {publicWeekDays.length === 0 ? (
-            <p className="bulletin-empty">No confirmed activities this week.</p>
-          ) : (
-            publicWeekDays.map(({ day, bookings }) => (
-              <div key={formatDateKey(day)} className="bulletin-day-group">
-                <h2>{formatShortDay(day)}</h2>
-                {bookings.map((booking) => (
-                  <EventItem booking={booking} key={booking.id} />
-                ))}
-              </div>
-            ))
-          )}
-        </section>
-        <button
-          type="button"
-          className="bulletin-cta-link"
-          onClick={() => setScreen("calendar")}
-        >
-          Open full calendar <span aria-hidden="true">&rarr;</span>
-        </button>
-        <AccessModal
+    <>
+      <HomeScreen
+        weekDays={publicWeekDays}
+        onMenu={() => setScreen("menu")}
+        onOpenCalendar={() => setScreen("calendar")}
+      />
+      <AccessModal
           open={accessModalOpen}
           requirePastor={protectedTarget === "pastor"}
           onClose={() => setAccessModalOpen(false)}
@@ -784,7 +733,6 @@ export function BulletinApp({
             setScreen(protectedTarget);
           }}
         />
-      </div>
-    </main>
+    </>
   );
 }
