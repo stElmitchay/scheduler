@@ -30,6 +30,11 @@ Required in `.env.local`:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ACCESS_CODE_PEPPER` — pepper for SHA-256 access code hashing
 
+Optional:
+- `NEXT_PUBLIC_SITE_URL` — public base URL used to build the rota share link
+  (e.g. `https://kcf-schedule.vercel.app`). Falls back to `window.location.origin`,
+  which is wrong when a leader builds the rota on localhost and shares the link.
+
 ## Architecture
 
 This is a single-route Next.js App Router app for Kharis Church (Freetown) — a space booking scheduler.
@@ -84,3 +89,60 @@ This file is intentionally `.mjs` (not `.ts`) because it is imported by both the
 Tables: `spaces`, `departments`, `app_settings` (single-row), `bookings`. Schema and migrations are in `supabase/schema.sql` — run it against a Supabase project to set up. The schema is idempotent (`IF NOT EXISTS`, `IF NOT EXISTS` constraints, `ON CONFLICT DO NOTHING`).
 
 `repeatWeekly: true` on a booking form creates 12 weekly occurrences in a single insert batch.
+
+## Serving rota module
+
+A self-contained feature beside the scheduler. It adds `rota_*` tables and new
+routes, and does not migrate `bookings`, `departments`, or `app_settings`.
+
+### Routes
+
+| Route | Audience | Purpose |
+|---|---|---|
+| `/rota` | leader | Code gate, then build and manage the rota |
+| `/r/[slug]` | public | Published rota, read-only, no code |
+
+`/rota` is a client shell. `unlockRotaAction` verifies a department access code
+via the existing `resolveAccessCode` and returns a payload plus an opaque
+12-hour session token. Every other action takes the **token**, not the code, and
+reads the department id out of it — a department id is never accepted from the
+client. The token lives in `sessionStorage`; the raw access code is never
+persisted anywhere.
+
+### Serving days
+
+Derived from `bookings` rows where `activity_type = 'Service'` and
+`status = 'confirmed'`, matched against `rota_service.service_name`. Service
+names are chosen from a dropdown of real `activity_name` values, never typed, so
+they cannot drift. Slots are derived from (booking × role × `slot_count`) and are
+not stored; only filled slots exist, in `rota_assignment`.
+
+### Key modules
+
+| Path | Purpose |
+|---|---|
+| `lib/rota/types.ts` | Shared types |
+| `lib/rota/data.ts` | All Supabase queries and mutations |
+| `lib/rota/session.mjs` | Session token sign/verify (HMAC + `ACCESS_CODE_PEPPER`) |
+| `lib/rota/fairness.mjs` | The seven warning rules and the period summary |
+| `lib/rota/auto-assign.mjs` | Deterministic greedy fill of empty slots |
+| `app/rota/actions.ts` | Server actions |
+| `components/rota/` | Leader screens and the public view |
+
+`fairness.mjs` and `auto-assign.mjs` are `.mjs` because they run in **both** the
+browser and the Node test runner — the same reason as `calendar-utils.mjs`.
+Their declarations are `.d.mts`, not `.d.ts`: with `allowJs` enabled, a `.d.ts`
+is not consulted for an explicit `.mjs` import, so literal types never narrow.
+
+### Database schema
+
+Rota tables live in `supabase/rota-schema.sql`, run separately from
+`schema.sql` and also idempotent.
+
+### Tests
+
+```bash
+node --test lib/rota/__tests__/session.test.mjs
+node --test lib/rota/__tests__/fairness.test.mjs
+node --test lib/rota/__tests__/auto-assign.test.mjs
+```
