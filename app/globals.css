@@ -1431,3 +1431,79 @@ select:focus-visible {
   font-size: 13.5px;
   text-decoration: none;
 }
+
+.rota-print-button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 14px;
+  color: var(--ink);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.rota-print-only {
+  display: none;
+}
+
+/* Save as PDF goes through the browser's own print dialog, so the print
+   stylesheet is the PDF layout. */
+@media print {
+  .rota-print-button,
+  .rota-search,
+  .bulletin-icon-button {
+    display: none !important;
+  }
+
+  .rota-print-only {
+    display: block;
+    margin-top: 4px;
+    color: #555;
+    font-size: 10pt;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  .bulletin-page {
+    padding: 0;
+  }
+
+  .bulletin-shell {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .rota-card {
+    border: 1px solid #ccc;
+    background: #fff;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .rota-service {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .bulletin-title-rule {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .rota-public-role strong {
+    color: #444;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}

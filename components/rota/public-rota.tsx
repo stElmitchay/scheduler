@@ -74,7 +74,21 @@ export function PublicRotaView({ rota }: { rota: PublicRota }) {
             <p className="bulletin-eyebrow">Kharis Church</p>
             <h1>{rota.departmentName} rota</h1>
           </div>
+          {hasAnything ? (
+            <button
+              type="button"
+              className="rota-print-button"
+              onClick={() => window.print()}
+            >
+              Download PDF
+            </button>
+          ) : null}
         </header>
+
+        <p className="rota-print-only">
+          Printed {new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(new Date())}
+          {search.length > 0 ? ` · filtered to "${query.trim()}"` : ""}
+        </p>
 
         {hasAnything ? (
           <div className="rota-search">
