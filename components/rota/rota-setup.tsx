@@ -175,6 +175,10 @@ export function RotaSetup({
                 </div>
               ))}
 
+              {drafts[service.id] ? (
+                <p className="rota-unsaved">Unsaved changes</p>
+              ) : null}
+
               <div className="rota-actions">
                 <button
                   type="button"
