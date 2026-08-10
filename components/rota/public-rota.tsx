@@ -29,12 +29,26 @@ export function PublicRotaView({ rota }: { rota: PublicRota }) {
   const [query, setQuery] = useState("");
   const search = query.trim().toLowerCase();
 
-  const filtered = useMemo(() => {
-    if (search.length === 0) {
-      return rota.periods;
-    }
+  // Whole days drop off once they are past, so today's services stay visible
+  // all day rather than vanishing the moment a service starts.
+  const upcoming = useMemo(() => {
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     return rota.periods
+      .map((period) => ({
+        ...period,
+        days: period.days.filter((day) => day.dateKey >= todayKey),
+      }))
+      .filter((period) => period.days.length > 0);
+  }, [rota.periods]);
+
+  const filtered = useMemo(() => {
+    if (search.length === 0) {
+      return upcoming;
+    }
+
+    return upcoming
       .map((period) => ({
         ...period,
         days: period.days
@@ -57,14 +71,15 @@ export function PublicRotaView({ rota }: { rota: PublicRota }) {
           .filter((day) => day.services.length > 0),
       }))
       .filter((period) => period.days.length > 0);
-  }, [rota.periods, search]);
+  }, [upcoming, search]);
 
   const matchedDays = filtered.reduce(
     (total, period) => total + period.days.length,
     0,
   );
 
-  const hasAnything = rota.periods.some((period) => period.days.length > 0);
+  const hasPublished = rota.periods.some((period) => period.days.length > 0);
+  const hasAnything = upcoming.length > 0;
 
   return (
     <main className="bulletin-page">
@@ -113,7 +128,9 @@ export function PublicRotaView({ rota }: { rota: PublicRota }) {
 
         {!hasAnything ? (
           <p className="bulletin-empty">
-            This rota has not been published yet. Check back soon.
+            {hasPublished
+              ? "No upcoming serving dates. The next rota has not been published yet."
+              : "This rota has not been published yet. Check back soon."}
           </p>
         ) : null}
 
