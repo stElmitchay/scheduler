@@ -1,4 +1,4 @@
-import type { RotaWarning } from "./types";
+import type { RotaWarning } from "./types.js";
 
 export type FairnessPerson = {
   id: string;

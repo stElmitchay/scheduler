@@ -1,4 +1,4 @@
-import type { FairnessContext } from "./fairness";
+import type { FairnessContext } from "./fairness.mjs";
 
 export type EmptySlot = {
   bookingId: string;
