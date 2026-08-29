@@ -1340,3 +1340,26 @@ select:focus-visible {
 .job-card-actions button svg {
   flex-shrink: 0;
 }
+
+.job-menu-popup {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  width: min(100%, 360px);
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 24%);
+  padding: 22px;
+}
+
+.job-menu-popup h2 {
+  margin: 4px 0 8px;
+  padding-right: 38px;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.job-menu-popup .bulletin-primary,
+.job-menu-popup .bulletin-secondary-full {
+  margin-top: 0;
+}

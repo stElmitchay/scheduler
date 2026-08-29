@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   type FormEvent,
   useActionState,
@@ -193,6 +194,7 @@ export function BulletinApp({
   const [accessMessage, setAccessMessage] = useState("");
   const [accessMessageIsError, setAccessMessageIsError] = useState(false);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const [jobModalOpen, setJobModalOpen] = useState(false);
   const [calendarNotice, setCalendarNotice] = useState("");
   const [manageNotice, setManageNotice] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -358,6 +360,58 @@ export function BulletinApp({
     return createPortal(modal, document.body);
   }
 
+  function renderJobModal() {
+    if (!jobModalOpen) {
+      return null;
+    }
+
+    const modal = (
+      <div className="bulletin-modal-backdrop" role="presentation">
+        <div
+          className="job-menu-popup"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="job-menu-title"
+        >
+          <button
+            type="button"
+            className="bulletin-modal-close"
+            onClick={() => setJobModalOpen(false)}
+            aria-label="Close job popup"
+          >
+            ×
+          </button>
+          <div>
+            <p className="bulletin-eyebrow">Job</p>
+            <h2 id="job-menu-title">Open jobs</h2>
+          </div>
+          <Link href="/jobs" className="bulletin-secondary-full job-action-link">
+            Job Board
+          </Link>
+          <Link
+            href="/jobs/dashboard"
+            className="bulletin-secondary-full job-action-link"
+          >
+            Job Dashboard
+          </Link>
+          <button
+            className="bulletin-primary"
+            type="button"
+            onClick={() => setJobModalOpen(false)}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+
+    if (typeof document === "undefined") {
+      return null;
+    }
+
+    return createPortal(modal, document.body);
+  }
+
   function shiftMonth(amount: number) {
     setMonthCursor((current) => {
       const next = new Date(current);
@@ -507,8 +561,16 @@ export function BulletinApp({
               </span>
               <b>›</b>
             </button>
+            <button type="button" onClick={() => setJobModalOpen(true)}>
+              <span>
+                <strong>Job</strong>
+                <small>Open the Job Board or Welfare dashboard</small>
+              </span>
+              <b>›</b>
+            </button>
           </nav>
           {renderAccessModal()}
+          {renderJobModal()}
         </div>
       </main>
     );
