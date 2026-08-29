@@ -1426,6 +1426,8 @@ select:focus-visible {
 .job-menu-popup .bulletin-primary,
 .job-menu-popup .bulletin-secondary-full {
   margin-top: 0;
+}
+
 /* ---------- Serving rota ---------- */
 
 .bulletin-menu-panel .bulletin-menu-link {
