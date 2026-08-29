@@ -1,3 +1,8 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { BulletinHeader } from "../bulletin-header";
 
 export type ProtectedTarget = "add" | "manage" | "pastor";
@@ -11,6 +16,55 @@ export function MenuScreen({
   onOpenProtected: (target: ProtectedTarget) => void;
   onOpenCalendar: () => void;
 }) {
+  const [jobModalOpen, setJobModalOpen] = useState(false);
+
+  function renderJobModal() {
+    if (!jobModalOpen || typeof document === "undefined") {
+      return null;
+    }
+
+    return createPortal(
+      <div className="bulletin-modal-backdrop" role="presentation">
+        <div
+          className="job-menu-popup"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="job-menu-title"
+        >
+          <button
+            type="button"
+            className="bulletin-modal-close"
+            onClick={() => setJobModalOpen(false)}
+            aria-label="Close job popup"
+          >
+            ×
+          </button>
+          <div>
+            <p className="bulletin-eyebrow">Job</p>
+            <h2 id="job-menu-title">Open jobs</h2>
+          </div>
+          <Link href="/jobs" className="bulletin-secondary-full job-action-link">
+            Job Board
+          </Link>
+          <Link
+            href="/jobs/dashboard"
+            className="bulletin-secondary-full job-action-link"
+          >
+            Job Dashboard
+          </Link>
+          <button
+            className="bulletin-primary"
+            type="button"
+            onClick={() => setJobModalOpen(false)}
+          >
+            Close
+          </button>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
   return (
     <main className="bulletin-page">
       <div className="bulletin-shell">
@@ -51,7 +105,15 @@ export function MenuScreen({
             </span>
             <b>›</b>
           </a>
+          <button type="button" onClick={() => setJobModalOpen(true)}>
+            <span>
+              <strong>Job</strong>
+              <small>Open the Job Board or Welfare dashboard</small>
+            </span>
+            <b>›</b>
+          </button>
         </nav>
+        {renderJobModal()}
       </div>
     </main>
   );

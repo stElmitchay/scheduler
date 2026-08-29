@@ -1,16 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import {
-  type FormEvent,
-  useActionState,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-import { Ban, Check, Pencil, Trash2 } from "lucide-react";
-import { createPortal } from "react-dom";
 import { useActionState, useMemo, useState } from "react";
 import {
   cancelBookingAction,
@@ -61,7 +50,6 @@ export function BulletinApp({
   const [activeCode, setActiveCode] = useState("");
   const [activeAccess, setActiveAccess] = useState<AccessContext | null>(null);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
-  const [jobModalOpen, setJobModalOpen] = useState(false);
   const [calendarNotice, setCalendarNotice] = useState("");
   const [manageNotice, setManageNotice] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -132,148 +120,6 @@ export function BulletinApp({
     setAccessModalOpen(true);
   }
 
-  function handleAccessSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const submittedCode = accessCode;
-    pendingCode.current = submittedCode;
-
-    startUnlockTransition(async () => {
-      const result = await unlockAccessAction(
-        { ok: false, message: "", access: null },
-        formData,
-      );
-
-      if (!result.ok) {
-        setAccessMessage(result.message);
-        setAccessMessageIsError(true);
-        return;
-      }
-
-      if (protectedTarget === "pastor" && result.access.kind !== "pastor") {
-        setAccessMessage("Pastor code required.");
-        setAccessMessageIsError(true);
-        return;
-      }
-
-      setAccessMessage(result.message);
-      setAccessMessageIsError(false);
-      setActiveCode(submittedCode);
-      setActiveAccess(result.access);
-      setEditingId(null);
-      setAccessModalOpen(false);
-      setScreen(protectedTarget);
-    });
-  }
-
-  function renderAccessModal() {
-    if (!accessModalOpen) {
-      return null;
-    }
-
-    const modal = (
-      <div className="bulletin-modal-backdrop" role="presentation">
-        <div
-          className="bulletin-access-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="access-modal-title"
-        >
-          <button
-            type="button"
-            className="bulletin-modal-close"
-            onClick={() => setAccessModalOpen(false)}
-            aria-label="Close access code popup"
-          >
-            ×
-          </button>
-          <h2 id="access-modal-title">Enter access code</h2>
-          <form className="bulletin-form" onSubmit={handleAccessSubmit}>
-            <label>
-              Access code
-              <input
-                name="accessCode"
-                value={accessCode}
-                onChange={(event) => setAccessCode(event.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <button type="submit" className="bulletin-primary" disabled={unlockPending}>
-              {unlockPending ? "Checking..." : "Continue"}
-            </button>
-          </form>
-          {accessMessage ? (
-            <p
-              className={
-                accessMessageIsError ? "bulletin-message error" : "bulletin-message"
-              }
-            >
-              {accessMessage}
-            </p>
-          ) : null}
-        </div>
-      </div>
-    );
-
-    if (typeof document === "undefined") {
-      return null;
-    }
-
-    return createPortal(modal, document.body);
-  }
-
-  function renderJobModal() {
-    if (!jobModalOpen) {
-      return null;
-    }
-
-    const modal = (
-      <div className="bulletin-modal-backdrop" role="presentation">
-        <div
-          className="job-menu-popup"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="job-menu-title"
-        >
-          <button
-            type="button"
-            className="bulletin-modal-close"
-            onClick={() => setJobModalOpen(false)}
-            aria-label="Close job popup"
-          >
-            ×
-          </button>
-          <div>
-            <p className="bulletin-eyebrow">Job</p>
-            <h2 id="job-menu-title">Open jobs</h2>
-          </div>
-          <Link href="/jobs" className="bulletin-secondary-full job-action-link">
-            Job Board
-          </Link>
-          <Link
-            href="/jobs/dashboard"
-            className="bulletin-secondary-full job-action-link"
-          >
-            Job Dashboard
-          </Link>
-          <button
-            className="bulletin-primary"
-            type="button"
-            onClick={() => setJobModalOpen(false)}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-
-    if (typeof document === "undefined") {
-      return null;
-    }
-
-    return createPortal(modal, document.body);
-  }
-
   function shiftMonth(amount: number) {
     setMonthCursor((current) => {
       const next = new Date(current);
@@ -308,50 +154,6 @@ export function BulletinApp({
 
   if (screen === "menu") {
     return (
-      <main className="bulletin-page">
-        <div className="bulletin-shell">
-          <BulletinHeader eyebrow="Kharis Church" title="Menu" onBack={goHome} />
-          <nav className="bulletin-menu-panel" aria-label="Scheduler menu">
-            <button type="button" onClick={() => openProtected("add")}>
-              <span>
-                <strong>Add activity</strong>
-                <small>Add a space booking or church activity</small>
-              </span>
-              <b>+</b>
-            </button>
-            <button type="button" onClick={() => openProtected("manage")}>
-              <span>
-                <strong>Manage activities</strong>
-                <small>Edit, confirm, or cancel what you own</small>
-              </span>
-              <b>›</b>
-            </button>
-            <button type="button" onClick={() => openProtected("pastor")}>
-              <span>
-                <strong>Pastor dashboard</strong>
-                <small>Pastor code required</small>
-              </span>
-              <b>›</b>
-            </button>
-            <button type="button" onClick={() => setScreen("calendar")}>
-              <span>
-                <strong>Full calendar</strong>
-                <small>Public month view and space filters</small>
-              </span>
-              <b>›</b>
-            </button>
-            <button type="button" onClick={() => setJobModalOpen(true)}>
-              <span>
-                <strong>Job</strong>
-                <small>Open the Job Board or Welfare dashboard</small>
-              </span>
-              <b>›</b>
-            </button>
-          </nav>
-          {renderAccessModal()}
-          {renderJobModal()}
-        </div>
-      </main>
       <>
         <MenuScreen
           onBack={goHome}
