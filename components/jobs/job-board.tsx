@@ -46,11 +46,11 @@ export function JobBoard({ jobs }: { jobs: JobOpportunity[] }) {
         <div className="jobs-toolbar">
           <button
             type="button"
-            className={filtersOpen ? "active" : ""}
+            className={filtersOpen ? "jobs-filter-button active" : "jobs-filter-button"}
             onClick={() => setFiltersOpen((current) => !current)}
           >
             <SlidersHorizontal size={16} aria-hidden="true" />
-            Filter
+            <span>Filter</span>
           </button>
           <button
             type="button"
