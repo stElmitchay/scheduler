@@ -71,8 +71,10 @@ export function BookingForm({
   const [selectedActivityType, setSelectedActivityType] = useState<ActivityType>(
     booking?.activityType ?? "Meeting",
   );
-  const [warnDismissed, setWarnDismissed] = useState(false);
-  const [blockedDismissed, setBlockedDismissed] = useState(false);
+  const [dismissedWarnState, setDismissedWarnState] =
+    useState<FormActionState | null>(null);
+  const [dismissedBlockedState, setDismissedBlockedState] =
+    useState<FormActionState | null>(null);
   const showDepartmentPicker = access.kind === "pastor";
   const spaceIsOptional = activityTypeAllowsOptionalSpace(selectedActivityType);
 
@@ -81,16 +83,12 @@ export function BookingForm({
       router.refresh();
       onSaved?.(state);
     }
-    if (state.ok === "warn") {
-      setWarnDismissed(false);
-    }
-    if (state.ok === "blocked") {
-      setBlockedDismissed(false);
-    }
   }, [onSaved, router, state]);
 
   const conflictModal =
-    state.ok === "warn" && !warnDismissed && typeof document !== "undefined"
+    state.ok === "warn" &&
+    dismissedWarnState !== state &&
+    typeof document !== "undefined"
       ? createPortal(
           <div className="bulletin-modal-backdrop" role="presentation">
             <div
@@ -102,7 +100,7 @@ export function BookingForm({
               <button
                 type="button"
                 className="bulletin-modal-close"
-                onClick={() => setWarnDismissed(true)}
+                onClick={() => setDismissedWarnState(state)}
                 aria-label="Close"
               >
                 ×
@@ -135,7 +133,7 @@ export function BookingForm({
               <button
                 type="button"
                 className="bulletin-secondary-full"
-                onClick={() => setWarnDismissed(true)}
+                onClick={() => setDismissedWarnState(state)}
               >
                 Go back
               </button>
@@ -146,7 +144,9 @@ export function BookingForm({
       : null;
 
   const blockedModal =
-    state.ok === "blocked" && !blockedDismissed && typeof document !== "undefined"
+    state.ok === "blocked" &&
+    dismissedBlockedState !== state &&
+    typeof document !== "undefined"
       ? createPortal(
           <div className="bulletin-modal-backdrop" role="presentation">
             <div
@@ -158,7 +158,7 @@ export function BookingForm({
               <button
                 type="button"
                 className="bulletin-modal-close"
-                onClick={() => setBlockedDismissed(true)}
+                onClick={() => setDismissedBlockedState(state)}
                 aria-label="Close"
               >
                 ×
@@ -169,7 +169,7 @@ export function BookingForm({
                 type="button"
                 className="bulletin-primary"
                 style={{ marginTop: 16 }}
-                onClick={() => setBlockedDismissed(true)}
+                onClick={() => setDismissedBlockedState(state)}
               >
                 OK
               </button>
