@@ -30,9 +30,7 @@ export function JobDetail({
         <p className="bulletin-eyebrow">{job.organisation}</p>
         <h1>{job.title}</h1>
         <p className="job-detail-meta">
-          {[job.location, formatJobType(job.jobType), job.salary]
-            .filter(Boolean)
-            .join(" / ")}
+          {[job.location, formatJobType(job.jobType)].filter(Boolean).join(" / ")}
         </p>
         {job.deadline ? (
           <p className="job-detail-deadline">
@@ -50,6 +48,13 @@ export function JobDetail({
         <section>
           <h2>Requirements</h2>
           <p>{job.requirements}</p>
+        </section>
+      ) : null}
+
+      {job.salary ? (
+        <section>
+          <h2>Salary</h2>
+          <p>{job.salary}</p>
         </section>
       ) : null}
 
