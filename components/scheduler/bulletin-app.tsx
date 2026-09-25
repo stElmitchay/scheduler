@@ -17,9 +17,16 @@ import type {
   Department,
   Space,
 } from "@/lib/scheduler/types";
+import { AppShell } from "@/components/shell/app-shell";
+import type { NavItem } from "@/components/shell/nav";
+import { OpportunityMenuModal } from "@/components/opportunities/opportunity-menu-modal";
+import { RotaUnlockModal } from "@/components/rota/rota-unlock-modal";
 import { AccessModal } from "./access-modal";
 import { AddScreen } from "./screens/add-screen";
-import { CalendarScreen } from "./screens/calendar-screen";
+import {
+  CalendarDayPanel,
+  CalendarScreen,
+} from "./screens/calendar-screen";
 import { HomeScreen } from "./screens/home-screen";
 import { ManageScreen } from "./screens/manage-screen";
 import { MenuScreen, type ProtectedTarget } from "./screens/menu-screen";
@@ -50,6 +57,8 @@ export function BulletinApp({
   const [activeCode, setActiveCode] = useState("");
   const [activeAccess, setActiveAccess] = useState<AccessContext | null>(null);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const [rotaModalOpen, setRotaModalOpen] = useState(false);
+  const [opportunityModalOpen, setOpportunityModalOpen] = useState(false);
   const [calendarNotice, setCalendarNotice] = useState("");
   const [manageNotice, setManageNotice] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -133,6 +142,60 @@ export function BulletinApp({
     setEditingId(null);
   }
 
+  function openAdd() {
+    setEditingId(null);
+
+    if (activeAccess) {
+      setScreen("add");
+      return;
+    }
+
+    openProtected("add");
+  }
+
+  // Inside BulletinApp a scheduler item is a state change; the rota and
+  // opportunities items are the only real links. Protected items fall back to
+  // the access modal exactly as the mobile menu does.
+  const navItems: NavItem[] = [
+    { key: "home", label: "This week", group: "main", onSelect: goHome },
+    {
+      key: "calendar",
+      label: "Calendar",
+      group: "main",
+      onSelect: () => setScreen("calendar"),
+    },
+    { key: "add", label: "Add activity", group: "main", onSelect: openAdd },
+    {
+      key: "manage",
+      label: "Manage",
+      group: "main",
+      onSelect: () =>
+        activeAccess ? setScreen("manage") : openProtected("manage"),
+    },
+    ...(activeAccess?.kind === "pastor"
+      ? [
+          {
+            key: "pastor" as const,
+            label: "Overview",
+            group: "main" as const,
+            onSelect: () => setScreen("pastor"),
+          },
+        ]
+      : []),
+    {
+      key: "rota",
+      label: "Serving rota",
+      group: "also",
+      onSelect: () => setRotaModalOpen(true),
+    },
+    {
+      key: "opportunities",
+      label: "Opportunities",
+      group: "also",
+      onSelect: () => setOpportunityModalOpen(true),
+    },
+  ];
+
   function handleFormSaved(state: Extract<FormActionState, { ok: true }>) {
     if (state.startAt) {
       const savedDate = new Date(state.startAt);
@@ -152,133 +215,233 @@ export function BulletinApp({
     setScreen("calendar");
   }
 
-  if (screen === "menu") {
-    return (
-      <>
+  // Every branch below returns a screen; the access modal is mounted once around
+  // the lot. It used to live inside the menu and home branches only, so the
+  // rail's Add activity and Manage on any other screen set the modal's state
+  // with nothing on the page to render it.
+  function renderScreen() {
+    if (screen === "menu") {
+      return (
         <MenuScreen
           onBack={goHome}
           onOpenProtected={openProtected}
           onOpenCalendar={() => setScreen("calendar")}
         />
-        <AccessModal
-          open={accessModalOpen}
-          requirePastor={protectedTarget === "pastor"}
-          onClose={() => setAccessModalOpen(false)}
-          onUnlocked={(access, code) => {
-            setActiveCode(code);
-            setActiveAccess(access);
-            setEditingId(null);
-            setAccessModalOpen(false);
-            setScreen(protectedTarget);
+      );
+    }
+
+    if (screen === "calendar") {
+      return (
+        <AppShell
+          items={navItems}
+          active="calendar"
+          panel={
+            <CalendarDayPanel
+              selectedDate={selectedDate}
+              selectedBookings={selectedBookings}
+              notice={calendarNotice}
+              onAddToDay={
+                activeAccess
+                  ? () => {
+                      setEditingId(null);
+                      setScreen("add");
+                    }
+                  : undefined
+              }
+            />
+          }
+        >
+          <CalendarScreen
+            monthCursor={monthCursor}
+            monthDays={monthDays}
+            selectedDate={selectedDate}
+            publicBookings={publicBookings}
+            spaces={spaces}
+            spaceFilter={spaceFilter}
+            onBack={goHome}
+            onShiftMonth={shiftMonth}
+            onToday={() => {
+              const now = new Date();
+              setMonthCursor(now);
+              setSelectedDate(now);
+            }}
+            onSelectDate={setSelectedDate}
+            onSpaceFilterChange={setSpaceFilter}
+          />
+        </AppShell>
+      );
+    }
+
+    if (screen === "add" && activeAccess) {
+      return (
+        <AppShell items={navItems} active="add">
+          <AddScreen
+            access={activeAccess}
+            activeCode={activeCode}
+            booking={editingBooking}
+            departments={departments}
+            spaces={spaces}
+            onBack={goHome}
+            onSaved={handleFormSaved}
+            onStopEditing={() => {
+              setEditingId(null);
+              setScreen("manage");
+            }}
+          />
+        </AppShell>
+      );
+    }
+
+    if (screen === "manage" && activeAccess) {
+      const pendingCount = editableBookings.filter(
+        (booking) => booking.status === "pending",
+      ).length;
+
+      return (
+        <AppShell
+          items={navItems}
+          active="manage"
+          panel={
+            <>
+              <p className="app-panel-label">
+                {activeAccess.kind === "pastor"
+                  ? "All departments"
+                  : activeAccess.departmentName}
+              </p>
+              <div className="app-stat">
+                <b>{editableBookings.length}</b>
+                <span>bookings</span>
+              </div>
+              <div className="app-stat">
+                <b>{pendingCount}</b>
+                <span>awaiting review</span>
+              </div>
+              <button
+                className="bulletin-primary"
+                type="button"
+                onClick={openAdd}
+              >
+                New activity
+              </button>
+            </>
+          }
+        >
+          <ManageScreen
+          access={activeAccess}
+          activeCode={activeCode}
+          bookings={editableBookings}
+          notice={manageNotice}
+          cancelAction={cancelAction}
+          confirmAction={confirmAction}
+          deleteAction={deleteAction}
+          cancelPending={cancelPending}
+          confirmPending={confirmPending}
+          deletePending={deletePending}
+          cancelState={cancelState}
+          confirmState={confirmState}
+          deleteState={deleteState}
+          onBack={goHome}
+          onEdit={(bookingId) => {
+            setEditingId(bookingId);
+            setScreen("add");
           }}
+            onAdd={openAdd}
+          />
+        </AppShell>
+      );
+    }
+
+    if (screen === "pastor" && activeAccess?.kind === "pastor") {
+      return (
+        <AppShell items={navItems} active="pastor">
+          <PastorScreen
+            bookings={bookings}
+            confirmedBookings={confirmedBookings}
+            spaces={spaces}
+            weekDays={weekDays}
+            today={today}
+            onBack={goHome}
+          />
+        </AppShell>
+      );
+    }
+
+    const weekBookingCount = publicWeekDays.reduce(
+      (total, { bookings: dayBookings }) => total + dayBookings.length,
+      0,
+    );
+    const weekPendingCount = bookings.filter(
+      (booking) => booking.status === "pending",
+    ).length;
+    const activeDepartments = new Set(
+      publicWeekDays.flatMap(({ bookings: dayBookings }) =>
+        dayBookings.map((booking) => booking.departmentId),
+      ),
+    ).size;
+
+    return (
+      <AppShell
+        items={navItems}
+        active="home"
+        panel={
+          <>
+            <p className="app-panel-label">This week</p>
+            <div className="app-stat">
+              <b>{weekBookingCount}</b>
+              <span>activities booked</span>
+            </div>
+            <div className="app-stat">
+              <b>{weekPendingCount}</b>
+              <span>pending review</span>
+            </div>
+            <div className="app-stat">
+              <b>{activeDepartments}</b>
+              <span>departments active</span>
+            </div>
+            {activeAccess ? null : (
+              <button
+                className="bulletin-primary"
+                type="button"
+                onClick={() => openProtected("add")}
+              >
+                Enter access code
+              </button>
+            )}
+          </>
+        }
+      >
+        <HomeScreen
+          weekDays={publicWeekDays}
+          onMenu={() => setScreen("menu")}
+          onOpenCalendar={() => setScreen("calendar")}
         />
-      </>
-    );
-  }
-
-  if (screen === "calendar") {
-    return (
-      <CalendarScreen
-        monthCursor={monthCursor}
-        monthDays={monthDays}
-        selectedDate={selectedDate}
-        selectedBookings={selectedBookings}
-        publicBookings={publicBookings}
-        spaces={spaces}
-        spaceFilter={spaceFilter}
-        notice={calendarNotice}
-        onBack={goHome}
-        onShiftMonth={shiftMonth}
-        onToday={() => {
-          const now = new Date();
-          setMonthCursor(now);
-          setSelectedDate(now);
-        }}
-        onSelectDate={setSelectedDate}
-        onSpaceFilterChange={setSpaceFilter}
-      />
-    );
-  }
-
-  if (screen === "add" && activeAccess) {
-    return (
-      <AddScreen
-        access={activeAccess}
-        activeCode={activeCode}
-        booking={editingBooking}
-        departments={departments}
-        spaces={spaces}
-        onBack={goHome}
-        onSaved={handleFormSaved}
-        onStopEditing={() => {
-          setEditingId(null);
-          setScreen("manage");
-        }}
-      />
-    );
-  }
-
-  if (screen === "manage" && activeAccess) {
-    return (
-      <ManageScreen
-        access={activeAccess}
-        activeCode={activeCode}
-        bookings={editableBookings}
-        notice={manageNotice}
-        cancelAction={cancelAction}
-        confirmAction={confirmAction}
-        deleteAction={deleteAction}
-        cancelPending={cancelPending}
-        confirmPending={confirmPending}
-        deletePending={deletePending}
-        cancelState={cancelState}
-        confirmState={confirmState}
-        deleteState={deleteState}
-        onBack={goHome}
-        onEdit={(bookingId) => {
-          setEditingId(bookingId);
-          setScreen("add");
-        }}
-        onAdd={() => {
-          setEditingId(null);
-          setScreen("add");
-        }}
-      />
-    );
-  }
-
-  if (screen === "pastor" && activeAccess?.kind === "pastor") {
-    return (
-      <PastorScreen
-        bookings={bookings}
-        confirmedBookings={confirmedBookings}
-        spaces={spaces}
-        weekDays={weekDays}
-        today={today}
-        onBack={goHome}
-      />
+      </AppShell>
     );
   }
 
   return (
     <>
-      <HomeScreen
-        weekDays={publicWeekDays}
-        onMenu={() => setScreen("menu")}
-        onOpenCalendar={() => setScreen("calendar")}
+      {renderScreen()}
+      <RotaUnlockModal
+        open={rotaModalOpen}
+        onClose={() => setRotaModalOpen(false)}
+      />
+      <OpportunityMenuModal
+        open={opportunityModalOpen}
+        onClose={() => setOpportunityModalOpen(false)}
       />
       <AccessModal
-          open={accessModalOpen}
-          requirePastor={protectedTarget === "pastor"}
-          onClose={() => setAccessModalOpen(false)}
-          onUnlocked={(access, code) => {
-            setActiveCode(code);
-            setActiveAccess(access);
-            setEditingId(null);
-            setAccessModalOpen(false);
-            setScreen(protectedTarget);
-          }}
-        />
+        open={accessModalOpen}
+        requirePastor={protectedTarget === "pastor"}
+        onClose={() => setAccessModalOpen(false)}
+        onUnlocked={(access, code) => {
+          setActiveCode(code);
+          setActiveAccess(access);
+          setEditingId(null);
+          setAccessModalOpen(false);
+          setScreen(protectedTarget);
+        }}
+      />
     </>
   );
 }

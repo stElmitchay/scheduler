@@ -3,11 +3,8 @@ import type {
   Opportunity,
   OpportunityBoardSettings,
 } from "@/lib/opportunities/types";
-import {
-  formatEmploymentType,
-  formatOpportunityDeadline,
-  formatOpportunityKind,
-} from "./format";
+import { deadlineLabel } from "@/lib/opportunities/display.mjs";
+import { formatEmploymentType, formatOpportunityKind } from "./format";
 
 function buildWhatsappUrl(
   opportunity: Opportunity,
@@ -33,29 +30,38 @@ export function OpportunityDetail({
   settings: OpportunityBoardSettings;
 }) {
   const whatsappUrl = buildWhatsappUrl(opportunity, settings);
+  const deadline = deadlineLabel(opportunity.deadline);
 
   return (
     <article className="opportunity-detail">
-      <div>
-        <p className="bulletin-eyebrow">{opportunity.organisation}</p>
-        <span className="opportunity-kind-badge">
-          {formatOpportunityKind(opportunity.kind)}
-        </span>
-        <h1>{opportunity.title}</h1>
-        <p className="opportunity-detail-meta">
-          {[
-            opportunity.location,
-            formatEmploymentType(opportunity.employmentType),
-            opportunity.salary,
-          ]
-            .filter(Boolean)
-            .join(" / ")}
-        </p>
-        {opportunity.deadline ? (
-          <p className="opportunity-detail-deadline">
-            Deadline: {formatOpportunityDeadline(opportunity.deadline)}
+      <div className="opportunity-detail-head">
+        <div>
+          <span className={`opportunity-kind kind-${opportunity.kind}`}>
+            {formatOpportunityKind(opportunity.kind)}
+          </span>
+          <p className="bulletin-eyebrow">{opportunity.organisation}</p>
+          <h1>{opportunity.title}</h1>
+          <p className="opportunity-detail-meta">
+            {[
+              opportunity.location,
+              formatEmploymentType(opportunity.employmentType),
+              opportunity.salary,
+            ]
+              .filter(Boolean)
+              .join(" / ")}
           </p>
-        ) : null}
+          {deadline ? (
+            <p
+              className={
+                deadline.urgent
+                  ? "opportunity-detail-deadline urgent"
+                  : "opportunity-detail-deadline"
+              }
+            >
+              {deadline.text}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <section>

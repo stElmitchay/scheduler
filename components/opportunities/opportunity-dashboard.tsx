@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { refreshOpportunityDashboardAction } from "@/app/opportunities/dashboard/actions";
+import { ShellWithMenus } from "@/components/shell/shell-with-menus";
+import { deadlineLabel } from "@/lib/opportunities/display.mjs";
+import { OPPORTUNITY_DASHBOARD_TOKEN_KEY } from "@/lib/opportunities/session-storage";
 import type {
   Opportunity,
   OpportunityActionResult,
@@ -14,7 +17,10 @@ import { OpportunityDashboardList } from "./opportunity-dashboard-list";
 import { OpportunityForm } from "./opportunity-form";
 import { OpportunitySettings } from "./opportunity-settings";
 
-const TOKEN_KEY = "opportunity-dashboard-session";
+const TOKEN_KEY = OPPORTUNITY_DASHBOARD_TOKEN_KEY;
+
+// What is live is what a leader checks first; drafts are a working state.
+const DEFAULT_TAB = "published" as const;
 
 type Screen = OpportunityStatus | "settings" | "form";
 
@@ -23,7 +29,7 @@ export function OpportunityDashboard() {
   const [payload, setPayload] = useState<OpportunityDashboardPayload | null>(
     null,
   );
-  const [screen, setScreen] = useState<Screen>("draft");
+  const [screen, setScreen] = useState<Screen>(DEFAULT_TAB);
   const [editing, setEditing] = useState<Opportunity | null>(null);
   const [notice, setNotice] = useState("");
   const [gateNotice, setGateNotice] = useState("");
@@ -154,56 +160,113 @@ export function OpportunityDashboard() {
         run={run}
         onSaved={(nextPayload) => {
           setPayload(nextPayload);
-          setScreen("draft");
+          setScreen(DEFAULT_TAB);
         }}
         onBack={() => {
           setNotice("");
-          setScreen("draft");
+          setScreen(DEFAULT_TAB);
         }}
       />
     );
   }
 
+  const counts = {
+    published: payload.opportunities.filter((o) => o.status === "published")
+      .length,
+    draft: payload.opportunities.filter((o) => o.status === "draft").length,
+    closingSoon: payload.opportunities.filter((o) => {
+      if (o.status !== "published") return false;
+      const label = deadlineLabel(o.deadline);
+      return Boolean(label?.urgent);
+    }).length,
+  };
+
+  const openForm = () => {
+    setNotice("");
+    setEditing(null);
+    setScreen("form");
+  };
+
   return (
-    <main className="bulletin-page">
-      <div className="bulletin-shell">
-        <header className="bulletin-header">
-          <div>
-            <p className="bulletin-eyebrow">Welfare</p>
-            <h1>Opportunities Dashboard</h1>
+    <ShellWithMenus
+      active="opportunities"
+      panel={
+        <>
+          <p className="app-panel-label">Counts</p>
+          <div className="app-stat">
+            <b>{counts.published}</b>
+            <span>published</span>
           </div>
-          <Link className="bulletin-icon-button" href="/" aria-label="Go back">
-            <span className="bulletin-back-mark">‹</span>
-          </Link>
-        </header>
-        <OpportunityDashboardList
-          token={token}
-          payload={payload}
-          activeStatus={screen}
-          busy={busy}
-          notice={notice}
-          run={run}
-          onChanged={setPayload}
-          onSelectStatus={(status) => {
-            setNotice("");
-            setScreen(status);
-          }}
-          onOpenSettings={() => {
-            setNotice("");
-            setScreen("settings");
-          }}
-          onCreate={() => {
-            setNotice("");
-            setEditing(null);
-            setScreen("form");
-          }}
-          onEdit={(opportunity) => {
-            setNotice("");
-            setEditing(opportunity);
-            setScreen("form");
-          }}
-        />
-      </div>
-    </main>
+          <div className="app-stat">
+            <b>{counts.draft}</b>
+            <span>draft</span>
+          </div>
+          <div className="app-stat">
+            <b>{counts.closingSoon}</b>
+            <span>closing this week</span>
+          </div>
+          <button className="bulletin-primary" type="button" onClick={openForm}>
+            New opportunity
+          </button>
+          <button
+            className="bulletin-secondary-full"
+            type="button"
+            onClick={() => {
+              setNotice("");
+              setScreen("settings");
+            }}
+          >
+            Settings
+          </button>
+        </>
+      }
+    >
+      <main className="bulletin-page">
+        <div className="bulletin-shell">
+          <header className="bulletin-header">
+            <div>
+              <p className="bulletin-eyebrow">Welfare</p>
+              <h1>Opportunities</h1>
+            </div>
+            <Link className="bulletin-icon-button" href="/" aria-label="Go back">
+              <span className="bulletin-back-mark">‹</span>
+            </Link>
+          </header>
+          <div className="opportunity-dashboard-actions app-mobile-only">
+            <button className="bulletin-primary" type="button" onClick={openForm}>
+              New opportunity
+            </button>
+            <button
+              className="bulletin-secondary-full"
+              type="button"
+              onClick={() => {
+                setNotice("");
+                setScreen("settings");
+              }}
+            >
+              Settings
+            </button>
+          </div>
+          <OpportunityDashboardList
+            token={token}
+            payload={payload}
+            activeStatus={screen}
+            busy={busy}
+            notice={notice}
+            run={run}
+            onChanged={setPayload}
+            onSelectStatus={(status) => {
+              setNotice("");
+              setScreen(status);
+            }}
+            onEdit={(opportunity) => {
+              setNotice("");
+              setEditing(opportunity);
+              setScreen("form");
+            }}
+          />
+        </div>
+      </main>
+    </ShellWithMenus>
   );
 }

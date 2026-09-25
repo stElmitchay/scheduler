@@ -28,9 +28,11 @@ export function HomeScreen({
             weekDays.map(({ day, bookings }) => (
               <div key={formatDateKey(day)} className="bulletin-day-group">
                 <h2>{formatShortDay(day)}</h2>
-                {bookings.map((booking) => (
-                  <EventItem booking={booking} key={booking.id} />
-                ))}
+                <div className="bulletin-day-events">
+                  {bookings.map((booking) => (
+                    <EventItem booking={booking} key={booking.id} />
+                  ))}
+                </div>
               </div>
             ))
           )}

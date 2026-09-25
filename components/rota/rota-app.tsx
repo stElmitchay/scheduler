@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { ShellWithMenus } from "@/components/shell/shell-with-menus";
+import { ROTA_TOKEN_KEY } from "@/lib/rota/session-storage";
 import { useCallback, useEffect, useState } from "react";
 import { openPeriodAction, refreshRotaAction } from "@/app/rota/actions";
 import type {
@@ -13,7 +15,7 @@ import { PeopleManager } from "./people-manager";
 import { RotaGate } from "./rota-gate";
 import { RotaSetup } from "./rota-setup";
 
-const TOKEN_KEY = "rota-session";
+const TOKEN_KEY = ROTA_TOKEN_KEY;
 
 type Screen = "months" | "builder" | "people" | "setup";
 
@@ -117,25 +119,29 @@ export function RotaApp() {
 
   if (restoring) {
     return (
-      <main className="bulletin-page">
-        <div className="bulletin-shell">
-          <p className="bulletin-empty">Loading…</p>
-        </div>
-      </main>
+      <ShellWithMenus active="rota">
+        <main className="bulletin-page">
+          <div className="bulletin-shell">
+            <p className="bulletin-empty">Loading…</p>
+          </div>
+        </main>
+      </ShellWithMenus>
     );
   }
 
   if (!token || !payload) {
     return (
-      <RotaGate
-        notice={gateNotice}
-        onUnlocked={(nextPayload, nextToken) => {
-          sessionStorage.setItem(TOKEN_KEY, nextToken);
-          setToken(nextToken);
-          setPayload(nextPayload);
-          setGateNotice("");
-        }}
-      />
+      <ShellWithMenus active="rota">
+        <RotaGate
+          notice={gateNotice}
+          onUnlocked={(nextPayload, nextToken) => {
+            sessionStorage.setItem(TOKEN_KEY, nextToken);
+            setToken(nextToken);
+            setPayload(nextPayload);
+            setGateNotice("");
+          }}
+        />
+      </ShellWithMenus>
     );
   }
 
@@ -150,29 +156,33 @@ export function RotaApp() {
 
   if (screen === "setup") {
     return (
-      <RotaSetup
-        payload={payload}
-        notice={notice}
-        busy={busy}
-        token={token}
-        run={run}
-        onSaved={setPayload}
-        onBack={() => setScreen("months")}
-      />
+      <ShellWithMenus active="rota">
+        <RotaSetup
+          payload={payload}
+          notice={notice}
+          busy={busy}
+          token={token}
+          run={run}
+          onSaved={setPayload}
+          onBack={() => setScreen("months")}
+        />
+      </ShellWithMenus>
     );
   }
 
   if (screen === "people") {
     return (
-      <PeopleManager
-        payload={payload}
-        notice={notice}
-        busy={busy}
-        token={token}
-        run={run}
-        onSaved={setPayload}
-        onBack={() => setScreen("months")}
-      />
+      <ShellWithMenus active="rota">
+        <PeopleManager
+          payload={payload}
+          notice={notice}
+          busy={busy}
+          token={token}
+          run={run}
+          onSaved={setPayload}
+          onBack={() => setScreen("months")}
+        />
+      </ShellWithMenus>
     );
   }
 
@@ -196,8 +206,32 @@ export function RotaApp() {
   const suggestions = [thisMonth, shiftMonth(thisMonth, 1)].filter(
     (month) => !existingMonths.has(month),
   );
+  const activePeople = payload.people.filter((person) => person.isActive).length;
+  const publishedCount = payload.periods.filter(
+    (entry) => entry.status === "published",
+  ).length;
 
   return (
+    <ShellWithMenus
+      active="rota"
+      panel={
+        <>
+          <p className="app-panel-label">{payload.departmentName}</p>
+          <div className="app-stat">
+            <b>{activePeople}</b>
+            <span>people on the team</span>
+          </div>
+          <div className="app-stat">
+            <b>{payload.services.length}</b>
+            <span>services configured</span>
+          </div>
+          <div className="app-stat">
+            <b>{publishedCount}</b>
+            <span>months published</span>
+          </div>
+        </>
+      }
+    >
     <main className="bulletin-page">
       <div className="bulletin-shell">
         <header className="bulletin-header">
@@ -210,71 +244,70 @@ export function RotaApp() {
           </Link>
         </header>
 
-        <nav className="bulletin-menu-panel" aria-label="Rota menu">
+        <nav className="rota-setup-nav" aria-label="Rota setup">
           <button type="button" onClick={() => setScreen("people")}>
-            <span>
-              <strong>People</strong>
-              <small>
-                {payload.people.filter((person) => person.isActive).length} active
-                on the team
-              </small>
-            </span>
-            <b>›</b>
+            <strong>People</strong>
+            <small>
+              {activePeople} active on the team
+            </small>
+            <b aria-hidden="true">›</b>
           </button>
           <button type="button" onClick={() => setScreen("setup")}>
-            <span>
-              <strong>Services and roles</strong>
-              <small>
-                {payload.services.length === 0
-                  ? "Not set up yet — start here"
-                  : `${payload.services.length} service${payload.services.length === 1 ? "" : "s"} configured`}
-              </small>
-            </span>
-            <b>›</b>
+            <strong>Services and roles</strong>
+            <small>
+              {payload.services.length === 0
+                ? "Not set up yet — start here"
+                : `${payload.services.length} service${payload.services.length === 1 ? "" : "s"} configured`}
+            </small>
+            <b aria-hidden="true">›</b>
           </button>
         </nav>
 
         {notice ? <p className="bulletin-message error">{notice}</p> : null}
 
         <div className="bulletin-title-rule">Months</div>
-        {payload.periods.length === 0 ? (
-          <p className="bulletin-empty">No months started yet.</p>
-        ) : (
-          <section className="bulletin-manage-list">
-            {payload.periods.map((entry) => (
-              <article key={entry.id} className="bulletin-manage-row">
-                <div>
-                  <h3>{formatMonthLabel(entry.month)}</h3>
-                  <span className={`bulletin-status-badge ${entry.status}`}>
-                    {entry.status}
-                  </span>
-                </div>
-                <div className="bulletin-row-actions">
-                  <button
-                    type="button"
-                    onClick={() => openMonth(entry.month)}
-                    disabled={busy}
-                  >
-                    Open
-                  </button>
-                </div>
-              </article>
-            ))}
-          </section>
-        )}
 
-        {suggestions.map((month) => (
-          <button
-            key={month}
-            type="button"
-            className="bulletin-primary"
-            onClick={() => openMonth(month)}
-            disabled={busy}
-          >
-            Start {formatMonthLabel(month)}
-          </button>
-        ))}
+        <section className="rota-month-list">
+          {payload.periods.length === 0 && suggestions.length === 0 ? (
+            <p className="bulletin-empty">No months started yet.</p>
+          ) : null}
+
+          {payload.periods.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              className="rota-month-row"
+              onClick={() => openMonth(entry.month)}
+              disabled={busy}
+            >
+              <span className="rota-month-name">
+                {formatMonthLabel(entry.month)}
+              </span>
+              <span className={`bulletin-status-badge ${entry.status}`}>
+                {entry.status}
+              </span>
+              <b aria-hidden="true">›</b>
+            </button>
+          ))}
+
+          {suggestions.map((month) => (
+            <button
+              key={month}
+              type="button"
+              className="rota-month-row rota-month-new"
+              onClick={() => openMonth(month)}
+              disabled={busy}
+            >
+              <span className="rota-month-name">
+                {formatMonthLabel(month)}
+              </span>
+              <span className="rota-month-hint">Not started</span>
+              <b aria-hidden="true">+</b>
+            </button>
+          ))}
+        </section>
       </div>
     </main>
+    </ShellWithMenus>
   );
 }

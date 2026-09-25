@@ -1,18 +1,17 @@
 "use client";
 
 import { Archive, CheckCircle2, Pencil, RotateCcw, XCircle } from "lucide-react";
+import { useState, type DragEvent } from "react";
 import { setOpportunityStatusAction } from "@/app/opportunities/dashboard/actions";
-import type {
-  Opportunity,
-  OpportunityActionResult,
-  OpportunityDashboardPayload,
-  OpportunityStatus,
-} from "@/lib/opportunities/types";
+import { deadlineLabel } from "@/lib/opportunities/display.mjs";
 import {
-  formatOpportunityDeadline,
-  formatOpportunityKind,
-  opportunityStatusLabels,
-} from "./format";
+  opportunityKindLabels,
+  type Opportunity,
+  type OpportunityActionResult,
+  type OpportunityDashboardPayload,
+  type OpportunityStatus,
+} from "@/lib/opportunities/types";
+import { opportunityStatusLabels } from "./format";
 
 const statuses: OpportunityStatus[] = [
   "draft",
@@ -21,36 +20,33 @@ const statuses: OpportunityStatus[] = [
   "archived",
 ];
 
-function nextActions(
-  status: OpportunityStatus,
-): { label: string; status: OpportunityStatus }[] {
-  if (status === "draft") {
-    return [
-      { label: "Publish", status: "published" },
-      { label: "Archive", status: "archived" },
-    ];
-  }
+// Mirrors assertAllowedStatusTransition in lib/opportunities/data.ts. Both the
+// card buttons and the drop targets read from this, so neither can offer a move
+// the server will reject.
+const ALLOWED: Record<OpportunityStatus, OpportunityStatus[]> = {
+  draft: ["published", "archived"],
+  published: ["closed", "archived"],
+  closed: ["archived"],
+  archived: ["draft"],
+};
 
-  if (status === "published") {
-    return [
-      { label: "Close", status: "closed" },
-      { label: "Archive", status: "archived" },
-    ];
-  }
+const ACTION_LABELS: Record<OpportunityStatus, string> = {
+  published: "Publish",
+  closed: "Close",
+  archived: "Archive",
+  draft: "Restore",
+};
 
-  if (status === "closed") {
-    return [{ label: "Archive", status: "archived" }];
-  }
-
-  return [{ label: "Restore", status: "draft" }];
+function canMove(from: OpportunityStatus, to: OpportunityStatus) {
+  return ALLOWED[from].includes(to);
 }
 
 function ActionIcon({ status }: { status: OpportunityStatus }) {
-  if (status === "published") return <CheckCircle2 size={14} aria-hidden="true" />;
-  if (status === "closed") return <XCircle size={14} aria-hidden="true" />;
-  if (status === "archived") return <Archive size={14} aria-hidden="true" />;
+  if (status === "published") return <CheckCircle2 size={13} aria-hidden="true" />;
+  if (status === "closed") return <XCircle size={13} aria-hidden="true" />;
+  if (status === "archived") return <Archive size={13} aria-hidden="true" />;
 
-  return <RotateCcw size={14} aria-hidden="true" />;
+  return <RotateCcw size={13} aria-hidden="true" />;
 }
 
 export function OpportunityDashboardList({
@@ -62,8 +58,6 @@ export function OpportunityDashboardList({
   run,
   onChanged,
   onSelectStatus,
-  onOpenSettings,
-  onCreate,
   onEdit,
 }: {
   token: string;
@@ -76,13 +70,10 @@ export function OpportunityDashboardList({
   ) => Promise<T | null>;
   onChanged: (payload: OpportunityDashboardPayload) => void;
   onSelectStatus: (status: OpportunityStatus) => void;
-  onOpenSettings: () => void;
-  onCreate: () => void;
   onEdit: (opportunity: Opportunity) => void;
 }) {
-  const visible = payload.opportunities.filter(
-    (opportunity) => opportunity.status === activeStatus,
-  );
+  const [dragging, setDragging] = useState<Opportunity | null>(null);
+  const [over, setOver] = useState<OpportunityStatus | null>(null);
 
   async function changeStatus(
     opportunity: Opportunity,
@@ -95,22 +86,102 @@ export function OpportunityDashboardList({
     if (next) onChanged(next);
   }
 
+  function byStatus(status: OpportunityStatus) {
+    return payload.opportunities.filter(
+      (opportunity) => opportunity.status === status,
+    );
+  }
+
+  function endDrag() {
+    setDragging(null);
+    setOver(null);
+  }
+
+  function onDragOver(event: DragEvent, target: OpportunityStatus) {
+    if (busy || !dragging || !canMove(dragging.status, target)) return;
+
+    // Only preventDefault on a legal target — without it the browser refuses the
+    // drop, which is exactly the feedback an illegal move should give.
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setOver(target);
+  }
+
+  async function onDrop(event: DragEvent, target: OpportunityStatus) {
+    event.preventDefault();
+
+    const moved = dragging;
+    endDrag();
+
+    if (!moved || busy || !canMove(moved.status, target)) return;
+
+    await changeStatus(moved, target);
+  }
+
+  function card(opportunity: Opportunity, draggable: boolean) {
+    const deadline = deadlineLabel(opportunity.deadline);
+
+    return (
+      <article
+        className={
+          dragging?.id === opportunity.id
+            ? "kanban-card is-dragging"
+            : "kanban-card"
+        }
+        key={opportunity.id}
+        draggable={draggable && !busy}
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", opportunity.id);
+          setDragging(opportunity);
+        }}
+        onDragEnd={endDrag}
+      >
+        <span className={`opportunity-kind kind-${opportunity.kind}`}>
+          {opportunityKindLabels[opportunity.kind]}
+        </span>
+        <h4>{opportunity.title}</h4>
+        <p>{opportunity.organisation}</p>
+        <p className={deadline?.urgent ? "kanban-due urgent" : "kanban-due"}>
+          {deadline ? deadline.short : "No deadline"}
+          {opportunity.location ? ` · ${opportunity.location}` : ""}
+        </p>
+        <div className="kanban-card-actions">
+          <button
+            type="button"
+            onClick={() => onEdit(opportunity)}
+            disabled={busy}
+          >
+            <Pencil size={13} aria-hidden="true" />
+            Edit
+          </button>
+          {ALLOWED[opportunity.status].map((target) => (
+            <button
+              key={target}
+              type="button"
+              onClick={() => changeStatus(opportunity, target)}
+              disabled={busy}
+            >
+              <ActionIcon status={target} />
+              {ACTION_LABELS[target]}
+            </button>
+          ))}
+        </div>
+      </article>
+    );
+  }
+
+  const visible = byStatus(activeStatus);
+
   return (
     <>
-      <div className="opportunity-dashboard-actions">
-        <button className="bulletin-primary" type="button" onClick={onCreate}>
-          New opportunity
-        </button>
-        <button
-          className="bulletin-secondary-full"
-          type="button"
-          onClick={onOpenSettings}
-        >
-          Settings
-        </button>
-      </div>
+      {notice ? <p className="bulletin-message error">{notice}</p> : null}
 
-      <nav className="opportunity-tabs" aria-label="Opportunity status">
+      {/* Below the breakpoint a four-column board is unusable, so narrow
+          viewports keep the status tabs and a single list. Drag is a pointer
+          gesture and does not work on touch, so cards there are not draggable —
+          the buttons are the only path, and remain so everywhere. */}
+      <nav className="opportunity-tabs app-mobile-only" aria-label="Opportunity status">
         {statuses.map((status) => (
           <button
             key={status}
@@ -123,59 +194,53 @@ export function OpportunityDashboardList({
         ))}
       </nav>
 
-      {notice ? <p className="bulletin-message error">{notice}</p> : null}
-
-      <section
-        className="opportunities-list"
-        aria-label={`${opportunityStatusLabels[activeStatus]} opportunities`}
-      >
+      <section className="kanban-single app-mobile-only">
         {visible.length === 0 ? (
           <p className="bulletin-empty">
-            No {opportunityStatusLabels[activeStatus].toLowerCase()}{" "}
-            opportunities.
+            No {opportunityStatusLabels[activeStatus].toLowerCase()} opportunities.
           </p>
         ) : (
-          visible.map((opportunity) => (
-            <article className="opportunity-card" key={opportunity.id}>
-              <span className="opportunity-card-top">
-                <span className="opportunity-card-meta">
-                  {opportunity.organisation}
-                </span>
-                <span className="opportunity-kind-badge">
-                  {formatOpportunityKind(opportunity.kind)}
-                </span>
-              </span>
-              <strong>{opportunity.title}</strong>
-              <span>{opportunity.location}</span>
-              {opportunity.deadline ? (
-                <small>
-                  Deadline: {formatOpportunityDeadline(opportunity.deadline)}
-                </small>
-              ) : null}
-              <div className="opportunity-card-actions">
-                <button
-                  type="button"
-                  onClick={() => onEdit(opportunity)}
-                  disabled={busy}
-                >
-                  <Pencil size={14} aria-hidden="true" />
-                  Edit
-                </button>
-                {nextActions(opportunity.status).map((action) => (
-                  <button
-                    key={action.status}
-                    type="button"
-                    onClick={() => changeStatus(opportunity, action.status)}
-                    disabled={busy}
-                  >
-                    <ActionIcon status={action.status} />
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            </article>
-          ))
+          visible.map((opportunity) => card(opportunity, false))
         )}
+      </section>
+
+      <section className="kanban" aria-label="Opportunities by status">
+        {statuses.map((status) => {
+          const column = byStatus(status);
+          const receptive =
+            dragging !== null &&
+            dragging.status !== status &&
+            canMove(dragging.status, status);
+
+          return (
+            <div className="kanban-col" key={status}>
+              <header className="kanban-head">
+                <b>{opportunityStatusLabels[status]}</b>
+                <span>{column.length}</span>
+              </header>
+              <div
+                className={[
+                  "kanban-drop",
+                  receptive ? "can-drop" : "",
+                  over === status ? "is-over" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onDragOver={(event) => onDragOver(event, status)}
+                onDragLeave={() => setOver((c) => (c === status ? null : c))}
+                onDrop={(event) => onDrop(event, status)}
+              >
+                {column.length === 0 ? (
+                  <p className="kanban-empty">
+                    {receptive ? "Drop here" : "Nothing here"}
+                  </p>
+                ) : (
+                  column.map((opportunity) => card(opportunity, true))
+                )}
+              </div>
+            </div>
+          );
+        })}
       </section>
     </>
   );

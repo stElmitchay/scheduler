@@ -18,6 +18,7 @@ import type {
   RotaOccurrence,
   RotaPayload,
 } from "@/lib/rota/types";
+import { ShellWithMenus } from "@/components/shell/shell-with-menus";
 import { formatMonthLabel } from "./rota-app";
 import { PersonPicker, type PickerSlot } from "./person-picker";
 
@@ -173,6 +174,23 @@ export function MonthBuilder({
   ).length;
   const published = period.period.status === "published";
 
+  // Roles belong to a service, so services do not share columns. One matrix per
+  // service, rows being that service's dates, is the only honest way to lay this
+  // out as a table.
+  const serviceMatrices = useMemo(() => {
+    return payload.services
+      .map((service) => ({
+        service,
+        roles: service.roles,
+        occurrences: visible
+          .filter((occurrence) => occurrence.rotaServiceId === service.id)
+          .sort((a, b) => a.startAt.localeCompare(b.startAt)),
+      }))
+      .filter(
+        (entry) => entry.occurrences.length > 0 && entry.roles.length > 0,
+      );
+  }, [payload.services, visible]);
+
   function assignedTo(bookingId: string, roleId: string, slotIndex: number) {
     return (
       period.assignments.find(
@@ -181,6 +199,61 @@ export function MonthBuilder({
           assignment.rotaRoleId === roleId &&
           assignment.slotIndex === slotIndex,
       ) ?? null
+    );
+  }
+
+  // Shared by the card list below the desktop breakpoint and the matrix above
+  // it, so a slot behaves identically in both.
+  function renderSlot(
+    occurrence: RotaOccurrence,
+    role: RotaPayload["services"][number]["roles"][number],
+    index: number,
+  ) {
+    const assignment = assignedTo(occurrence.bookingId, role.id, index);
+    const person = assignment ? personById.get(assignment.rotaPersonId) : null;
+    const warnings = person
+      ? checkCandidate({
+          personId: person.id,
+          bookingId: occurrence.bookingId,
+          context: {
+            ...context,
+            assignments: context.assignments.filter(
+              (entry) =>
+                !(
+                  entry.bookingId === occurrence.bookingId &&
+                  entry.rotaPersonId === person.id
+                ),
+            ),
+          },
+        }).filter((warning) => warning.severity === "warn")
+      : [];
+
+    return (
+      <button
+        key={index}
+        type="button"
+        className={
+          person
+            ? warnings.length > 0
+              ? "rota-slot filled warned"
+              : "rota-slot filled"
+            : "rota-slot"
+        }
+        disabled={busy}
+        onClick={() =>
+          setPicker({
+            bookingId: occurrence.bookingId,
+            rotaRoleId: role.id,
+            slotIndex: index,
+            roleName: role.name,
+            serviceName: `${occurrence.serviceName}, ${formatDayHeading(occurrence.startAt)}`,
+            filledBy: person?.id ?? null,
+          })
+        }
+      >
+        <span>{person ? person.name : "Empty"}</span>
+        {warnings.length > 0 ? <em>{warnings[0].message}</em> : null}
+      </button>
     );
   }
 
@@ -210,7 +283,54 @@ export function MonthBuilder({
   const onRun = summary.filter((entry) => entry.consecutiveWeeks >= 3);
   const underUsed = summary.filter((entry) => entry.underUsed);
 
+  const warningRows = [
+    ...overCap.map((entry) => ({
+      id: `cap-`,
+      name: entry.name,
+      detail: `Over the cap (${entry.monthCount} of ${payload.settings.maxServesPerMonth})`,
+    })),
+    ...onRun.map((entry) => ({
+      id: `run-`,
+      name: entry.name,
+      detail: `${entry.consecutiveWeeks} weeks running`,
+    })),
+    ...aboveAverage.map((entry) => ({
+      id: `avg-`,
+      name: entry.name,
+      detail: `Doing more than most (${entry.monthCount})`,
+    })),
+  ];
+
   return (
+    <ShellWithMenus
+      active="rota"
+      panel={
+        <>
+          <p className="app-panel-label">Warnings</p>
+          {warningRows.length === 0 ? (
+            <p className="bulletin-empty">Nothing to flag.</p>
+          ) : (
+            warningRows.map((row) => (
+              <div className="rota-warning" key={row.id}>
+                <b>{row.name}</b>
+                <span>{row.detail}</span>
+              </div>
+            ))
+          )}
+          <p className="app-panel-label" style={{ marginTop: 18 }}>
+            Load
+          </p>
+          {summary
+            .filter((entry) => entry.monthCount > 0)
+            .map((entry) => (
+              <div className="app-tally" key={entry.personId}>
+                <span>{entry.name}</span>
+                <b>{entry.monthCount}</b>
+              </div>
+            ))}
+        </>
+      }
+    >
     <main className="bulletin-page">
       <div className="bulletin-shell bulletin-shell-wide">
         <header className="bulletin-header">
@@ -297,8 +417,49 @@ export function MonthBuilder({
           </section>
         )}
 
+        {serviceMatrices.map(({ service, roles, occurrences }) => (
+          <section
+            key={service.id}
+            className="rota-matrix-wrap app-desktop-only"
+            aria-label={`${service.serviceName} rota`}
+          >
+            <table className="rota-matrix">
+              <caption className="sr-only">{service.serviceName}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{service.serviceName}</th>
+                  {roles.map((role) => (
+                    <th scope="col" key={role.id}>
+                      {role.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {occurrences.map((occurrence) => (
+                  <tr key={occurrence.bookingId}>
+                    <td className="rota-matrix-day">
+                      <b>{formatDayHeading(occurrence.startAt)}</b>
+                      <span>{formatTime(occurrence.startAt)}</span>
+                    </td>
+                    {roles.map((role) => (
+                      <td key={role.id}>
+                        <div className="rota-slots">
+                          {Array.from({ length: role.slotCount }, (_, index) =>
+                            renderSlot(occurrence, role, index),
+                          )}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))}
+
         {days.map((day) => (
-          <section key={day.dateKey} className="rota-card">
+          <section key={day.dateKey} className="rota-card app-mobile-only">
             <div className="bulletin-title-rule">
               {formatDayHeading(day.occurrences[0].startAt)}
             </div>
@@ -315,61 +476,9 @@ export function MonthBuilder({
                     <div key={role.id} className="rota-role-block">
                       <h4>{role.name}</h4>
                       <div className="rota-slots">
-                        {Array.from({ length: role.slotCount }, (_, index) => {
-                          const assignment = assignedTo(
-                            occurrence.bookingId,
-                            role.id,
-                            index,
-                          );
-                          const person = assignment
-                            ? personById.get(assignment.rotaPersonId)
-                            : null;
-                          const warnings = person
-                            ? checkCandidate({
-                                personId: person.id,
-                                bookingId: occurrence.bookingId,
-                                context: {
-                                  ...context,
-                                  assignments: context.assignments.filter(
-                                    (entry) =>
-                                      !(
-                                        entry.bookingId ===
-                                          occurrence.bookingId &&
-                                        entry.rotaPersonId === person.id
-                                      ),
-                                  ),
-                                },
-                              }).filter(
-                                (warning) => warning.severity === "warn",
-                              )
-                            : [];
-
-                          return (
-                            <button
-                              key={index}
-                              type="button"
-                              className={
-                                person ? "rota-slot filled" : "rota-slot"
-                              }
-                              disabled={busy}
-                              onClick={() =>
-                                setPicker({
-                                  bookingId: occurrence.bookingId,
-                                  rotaRoleId: role.id,
-                                  slotIndex: index,
-                                  roleName: role.name,
-                                  serviceName: `${occurrence.serviceName}, ${formatDayHeading(occurrence.startAt)}`,
-                                  filledBy: person?.id ?? null,
-                                })
-                              }
-                            >
-                              <span>{person ? person.name : "Empty"}</span>
-                              {warnings.length > 0 ? (
-                                <em>{warnings[0].message}</em>
-                              ) : null}
-                            </button>
-                          );
-                        })}
+                        {Array.from({ length: role.slotCount }, (_, index) =>
+                          renderSlot(occurrence, role, index),
+                        )}
                       </div>
                     </div>
                   ),
@@ -510,5 +619,6 @@ export function MonthBuilder({
         onClose={() => setPicker(null)}
       />
     </main>
+    </ShellWithMenus>
   );
 }

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { OpportunityDetail } from "@/components/opportunities/opportunity-detail";
+import { PublicShell } from "@/components/shell/public-shell";
 import {
   getOpportunityBoardSettings,
   getPublicOpportunityBySlug,
@@ -23,29 +23,14 @@ export default async function OpportunityDetailPage({
   ]);
 
   return (
-    <main className="bulletin-page opportunities-page">
-      <div className="bulletin-shell">
-        <header className="bulletin-header">
-          <div>
-            <p className="bulletin-eyebrow">Kharis Church</p>
-            <h1>Opportunities Board</h1>
-          </div>
-          <Link
-            className="bulletin-icon-button"
-            href="/opportunities"
-            aria-label="Go back"
-          >
-            <span className="bulletin-back-mark">‹</span>
-          </Link>
-        </header>
-        {opportunity ? (
-          <OpportunityDetail opportunity={opportunity} settings={settings} />
-        ) : (
-          <p className="bulletin-empty opportunity-unavailable">
-            This opportunity is no longer available.
-          </p>
-        )}
-      </div>
-    </main>
+    <PublicShell eyebrow="Kharis \u00b7 Opportunities">
+      {opportunity ? (
+        <OpportunityDetail opportunity={opportunity} settings={settings} />
+      ) : (
+        <p className="bulletin-empty opportunity-unavailable">
+          This opportunity is no longer available.
+        </p>
+      )}
+    </PublicShell>
   );
 }
