@@ -2,6 +2,7 @@ import {
   formatDateKey,
   isSameDate,
 } from "@/lib/scheduler/calendar-utils.mjs";
+import { visibleActivities } from "@/lib/scheduler/day-activities.mjs";
 import type { Booking, Space } from "@/lib/scheduler/types";
 import { BulletinHeader, EventItem } from "../bulletin-header";
 import {
@@ -15,11 +16,9 @@ export function CalendarScreen({
   monthCursor,
   monthDays,
   selectedDate,
-  selectedBookings,
   publicBookings,
   spaces,
   spaceFilter,
-  notice,
   onBack,
   onShiftMonth,
   onToday,
@@ -29,11 +28,9 @@ export function CalendarScreen({
   monthCursor: Date;
   monthDays: Date[];
   selectedDate: Date;
-  selectedBookings: Booking[];
   publicBookings: Booking[];
   spaces: Space[];
   spaceFilter: SpaceFilter;
-  notice: string;
   onBack: () => void;
   onShiftMonth: (amount: number) => void;
   onToday: () => void;
@@ -119,32 +116,75 @@ export function CalendarScreen({
                       {dayBookings.length}
                     </span>
                   ) : null}
-                  <span className="calendar-day-events">
-                    {dayBookings.slice(0, 2).map((booking) => (
-                      <span key={booking.id}>{booking.activityName}</span>
-                    ))}
-                    {dayBookings.length > 2 ? (
-                      <em>+{dayBookings.length - 2} more</em>
-                    ) : null}
-                  </span>
+                  <CellActivities bookings={dayBookings} />
                 </button>
               );
             })}
           </section>
         </section>
 
-        <section className="bulletin-section">
-          <h2>{formatDayHeading(selectedDate)}</h2>
-          {notice ? <p className="bulletin-message">{notice}</p> : null}
-          {selectedBookings.length === 0 ? (
-            <p className="bulletin-empty">No activities for this date.</p>
-          ) : (
-            selectedBookings.map((booking) => (
-              <EventItem booking={booking} key={booking.id} />
-            ))
-          )}
-        </section>
       </div>
     </main>
+  );
+}
+
+// Rendered inside every cell but hidden below the desktop breakpoint, where the
+// count badge carries the same information in the space available.
+function CellActivities({ bookings }: { bookings: Booking[] }) {
+  const { shown, overflow } = visibleActivities(bookings);
+
+  if (bookings.length === 0) return null;
+
+  return (
+    <span className="calendar-cell-list" aria-hidden="true">
+      {shown.map((booking) => (
+        <span
+          key={booking.id}
+          className={`calendar-cell-item ${booking.status}`}
+        >
+          {booking.activityName}
+        </span>
+      ))}
+      {overflow > 0 ? (
+        <span className="calendar-cell-more">+{overflow} more</span>
+      ) : null}
+    </span>
+  );
+}
+
+// The selected day. Sits in the shell's right panel on desktop and falls in
+// underneath the grid on mobile, which is where it has always been.
+export function CalendarDayPanel({
+  selectedDate,
+  selectedBookings,
+  notice,
+  onAddToDay,
+}: {
+  selectedDate: Date;
+  selectedBookings: Booking[];
+  notice: string;
+  onAddToDay?: () => void;
+}) {
+  return (
+    <section className="bulletin-section">
+      <h2>{formatDayHeading(selectedDate)}</h2>
+      {notice ? <p className="bulletin-message">{notice}</p> : null}
+      {selectedBookings.length === 0 ? (
+        <p className="bulletin-empty">No activities for this date.</p>
+      ) : (
+        selectedBookings.map((booking) => (
+          <EventItem booking={booking} key={booking.id} />
+        ))
+      )}
+      {onAddToDay ? (
+        <button
+          type="button"
+          className="bulletin-secondary-full"
+          onClick={onAddToDay}
+        >
+          Add to this day
+        </button>
+      ) : null}
+    </section>
   );
 }

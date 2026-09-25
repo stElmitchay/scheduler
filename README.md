@@ -1,47 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kharis Church Scheduler
 
-## Getting Started
+Space bookings, serving rota, and opportunities board for Kharis Church,
+Freetown. One Next.js app over one Supabase project, sharing a single set of
+access codes.
 
-First, run the development server:
+| Page | Who it's for |
+|---|---|
+| `/` | Everyone — the weekly bulletin and month calendar |
+| `/rota` | Department leaders — build and publish a monthly serving rota |
+| `/r/[slug]` | Everyone — a published rota, read-only, no code needed |
+| `/opportunities` | Everyone — jobs, scholarships, and more from the Welfare team |
+| `/opportunities/dashboard` | Welfare team and the branch pastor — post and manage them |
+
+## Setup
+
+Create `.env.local`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+ACCESS_CODE_PEPPER=...            # any long random string, keep it secret
+NEXT_PUBLIC_SITE_URL=https://...  # the deployed URL; see note below
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`NEXT_PUBLIC_SITE_URL` is what share links are built from. Without it the app
+falls back to whatever origin the browser is on, so a rota built on localhost
+would be shared as a `localhost` link that nobody else can open.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run the SQL in `supabase/` against the project, in this order:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| File | When |
+|---|---|
+| `schema.sql` | Always — spaces, departments, settings, bookings |
+| `activity-calendar-migration.sql` | Only on a project created before activity types existed |
+| `rota-schema.sql` | To enable `/rota` |
+| `opportunity-board-schema.sql` | To enable `/opportunities` on a new project |
+| `opportunities-rename-migration.sql` | Instead of the line above, on a project that already ran the old `job-board-schema.sql` |
 
-## Booking Rules
+Each file is safe to run more than once.
 
-- **Space conflicts** — two confirmed activities can't overlap in the same space. This is blocked outright.
-- **Department conflicts** — if another department already has something scheduled at an overlapping time (in a different space), the new activity is saved as *pending* instead of *confirmed*, so it can be reviewed before it's treated as final.
-- **Daily activity limit** — no more than 3 confirmed activities can be scheduled church-wide on any single calendar day. Sunday services are exempt: they don't count toward the limit and are never blocked by it.
+Then:
 
-## Learn More
+```bash
+npm install
+npm run dev     # http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Access codes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Codes are never stored in plain text. Hash one and paste the result into
+Supabase — `departments.access_code_hash` for a department, or
+`app_settings.pastor_access_code_hash` for the branch pastor:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+ACCESS_CODE_PEPPER="..." npm run hash-code -- "MYCODE"
+```
 
-## Deploy on Vercel
+The pepper used to hash a code must match the one in `.env.local`, so changing
+`ACCESS_CODE_PEPPER` invalidates every existing code.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To set up all twelve departments at once, `ACCESS_CODE_PEPPER="..." npm run
+department-sql` prints an `INSERT` you can paste into Supabase, with each
+department's code listed in a comment at the top. Re-running it overwrites the
+stored hashes, so it doubles as a way to rotate every department code.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+A department code unlocks booking and managing for that department only. The
+pastor code unlocks everything, plus the metrics dashboard.
 
-## Serving Rota
+## Booking rules
+
+- **Space conflicts** — two confirmed activities can't overlap in the same
+  space. This is blocked outright.
+- **Department conflicts** — if another department already has something
+  scheduled at an overlapping time (in a different space), the new activity is
+  saved as *pending* instead of *confirmed*, so it can be reviewed before it's
+  treated as final.
+- **Daily activity limit** — no more than 3 confirmed activities can be
+  scheduled church-wide on any single calendar day. Services are exempt: they
+  don't count toward the limit and are never blocked by it.
+
+Ticking *repeat weekly* on a booking creates 12 occurrences, and the rules above
+are checked against all of them.
+
+## Serving rota
 
 Department leaders can build and share a monthly serving rota at `/rota`.
 
@@ -62,6 +103,46 @@ Department leaders can build and share a monthly serving rota at `/rota`.
   *Services and roles* is public and read-only; ushers open it and search their
   name to find their dates. Generating a new link stops the old one working.
 
-Run `supabase/rota-schema.sql` once against the Supabase project to create the
-rota tables, and set `NEXT_PUBLIC_SITE_URL` to the deployed URL so the share link
-points there rather than at localhost.
+## Opportunities board
+
+The Welfare team posts vetted opportunities at `/opportunities` — jobs,
+scholarships, grants, and anything else worth passing on. Anyone can browse them,
+no code and no account. Visitors can search by title, organisation, location, or
+description, and filter by kind, employment type, and location.
+
+- **Kinds** — every posting is one of Job, Scholarship, Internship, Training,
+  Grant, Volunteer, or Other, shown as a badge on the board and picked at the
+  top of the form. **Employment type** (full-time, part-time, and so on) only
+  appears for a Job, since it says nothing useful about a scholarship. Switching
+  a posting away from Job clears it.
+- **Signing in** — the dashboard at `/opportunities/dashboard` opens with the
+  Welfare department code or the pastor code. No other department code works. As
+  with the rota, the session is per-tab and expires after 12 hours.
+- **Posting** — a draft needs a title, organisation, location, and description.
+  Before it can be published it also needs a way to apply: a link, written
+  instructions, or an organisation contact. You can attach a PDF or an image
+  (PNG, JPG, or WEBP) up to 10 MB.
+- **The life of a posting** — *draft* → *published* → *closed* → *archived*, and
+  an archived posting can be sent back to draft to reuse. A published posting
+  with a deadline closes itself once that date passes. Closing or archiving
+  takes it off the public board; it is never deleted.
+- **Sharing** — every published posting has its own link at
+  `/opportunities/<slug>`. The slug comes from the title, so renaming one
+  changes its link and the old one stops working. Links shared back when this
+  was the job board (`/jobs/<slug>`) still work — they redirect.
+- **WhatsApp help** — set a Welfare WhatsApp number in *Opportunity settings*
+  and each page gains a button that opens WhatsApp with the details filled in,
+  so someone who needs help applying can just send it. Use international format
+  with no `+`, for example `23276123456`. Leave it blank to hide the button.
+
+## Tests
+
+```bash
+node --test "{lib,scripts}/**/__tests__/*.test.mjs"
+```
+
+## Deploying
+
+Deploy on [Vercel](https://vercel.com/new). Set the four environment variables
+in the project settings — including `NEXT_PUBLIC_SITE_URL`, pointing at the
+deployed domain — and run the SQL files against the Supabase project first.

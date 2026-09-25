@@ -16,46 +16,46 @@ export function MenuScreen({
   onOpenProtected: (target: ProtectedTarget) => void;
   onOpenCalendar: () => void;
 }) {
-  const [jobModalOpen, setJobModalOpen] = useState(false);
+  const [opportunityModalOpen, setOpportunityModalOpen] = useState(false);
 
-  function renderJobModal() {
-    if (!jobModalOpen || typeof document === "undefined") {
+  function renderOpportunityModal() {
+    if (!opportunityModalOpen || typeof document === "undefined") {
       return null;
     }
 
     return createPortal(
       <div className="bulletin-modal-backdrop" role="presentation">
         <div
-          className="job-menu-popup"
+          className="opportunity-menu-popup"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="job-menu-title"
+          aria-labelledby="opportunity-menu-title"
         >
           <button
             type="button"
             className="bulletin-modal-close"
-            onClick={() => setJobModalOpen(false)}
-            aria-label="Close job popup"
+            onClick={() => setOpportunityModalOpen(false)}
+            aria-label="Close opportunities popup"
           >
             ×
           </button>
           <div>
-            <p className="bulletin-eyebrow">Job</p>
-            <h2 id="job-menu-title">Open jobs</h2>
+            <p className="bulletin-eyebrow">Welfare</p>
+            <h2 id="opportunity-menu-title">Opportunities</h2>
           </div>
-          <Link href="/jobs" className="bulletin-secondary-full job-action-link">
-            Job Board
+          <Link href="/opportunities" className="bulletin-secondary-full opportunity-action-link">
+            Opportunities Board
           </Link>
           <Link
-            href="/jobs/dashboard"
-            className="bulletin-secondary-full job-action-link"
+            href="/opportunities/dashboard"
+            className="bulletin-secondary-full opportunity-action-link"
           >
-            Job Dashboard
+            Opportunities Dashboard
           </Link>
           <button
             className="bulletin-primary"
             type="button"
-            onClick={() => setJobModalOpen(false)}
+            onClick={() => setOpportunityModalOpen(false)}
           >
             Close
           </button>
@@ -105,15 +105,15 @@ export function MenuScreen({
             </span>
             <b>›</b>
           </a>
-          <button type="button" onClick={() => setJobModalOpen(true)}>
+          <button type="button" onClick={() => setOpportunityModalOpen(true)}>
             <span>
-              <strong>Job</strong>
-              <small>Open the Job Board or Welfare dashboard</small>
+              <strong>Opportunities</strong>
+              <small>Jobs, scholarships, and more from Welfare</small>
             </span>
             <b>›</b>
           </button>
         </nav>
-        {renderJobModal()}
+        {renderOpportunityModal()}
       </div>
     </main>
   );

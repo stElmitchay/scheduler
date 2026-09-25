@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PublicShell } from "@/components/shell/public-shell";
 import type { PublicRota } from "@/lib/rota/data";
 
 function formatMonthLabel(month: string) {
@@ -82,8 +83,10 @@ export function PublicRotaView({ rota }: { rota: PublicRota }) {
   const hasAnything = upcoming.length > 0;
 
   return (
-    <main className="bulletin-page">
-      <div className="bulletin-shell">
+    <PublicShell
+      eyebrow={`Kharis \u00b7 ${rota.departmentName}`}
+      width="wide"
+    >
         <header className="bulletin-header">
           <div>
             <p className="bulletin-eyebrow">Kharis Church</p>
@@ -162,7 +165,6 @@ export function PublicRotaView({ rota }: { rota: PublicRota }) {
             ))}
           </section>
         ))}
-      </div>
-    </main>
+    </PublicShell>
   );
 }
