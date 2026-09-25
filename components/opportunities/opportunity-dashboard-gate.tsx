@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { unlockJobDashboardAction } from "@/app/jobs/dashboard/actions";
-import type { JobDashboardPayload } from "@/lib/jobs/types";
+import { unlockOpportunityDashboardAction } from "@/app/opportunities/dashboard/actions";
+import type { OpportunityDashboardPayload } from "@/lib/opportunities/types";
 
-export function JobDashboardGate({
+export function OpportunityDashboardGate({
   notice,
   onUnlocked,
 }: {
   notice: string;
-  onUnlocked: (payload: JobDashboardPayload, token: string) => void;
+  onUnlocked: (payload: OpportunityDashboardPayload, token: string) => void;
 }) {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState(notice);
@@ -20,7 +20,7 @@ export function JobDashboardGate({
     event.preventDefault();
     setBusy(true);
 
-    const result = await unlockJobDashboardAction(code);
+    const result = await unlockOpportunityDashboardAction(code);
 
     setBusy(false);
 
@@ -38,13 +38,13 @@ export function JobDashboardGate({
         <header className="bulletin-header">
           <div>
             <p className="bulletin-eyebrow">Welfare</p>
-            <h1>Job Dashboard</h1>
+            <h1>Opportunities Dashboard</h1>
           </div>
           <Link className="bulletin-icon-button" href="/" aria-label="Go back">
             <span className="bulletin-back-mark">‹</span>
           </Link>
         </header>
-        <form className="job-form" onSubmit={submit}>
+        <form className="opportunity-form" onSubmit={submit}>
           <label>
             <span>Access code</span>
             <input

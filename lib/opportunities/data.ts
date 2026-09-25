@@ -1,21 +1,32 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { resolveAccessCode } from "@/lib/scheduler/data";
 import { buildUniqueSlug } from "./slug";
-import { verifyJobDashboardSession } from "./session.mjs";
+import { verifyOpportunityDashboardSession } from "./session.mjs";
 import {
   validateAttachment,
-  validateJobDraft,
-  validateJobPublish,
+  validateOpportunityDraft,
+  validateOpportunityPublish,
   validateWhatsappNumber,
 } from "./validation";
-import { jobStatuses, type JobDashboardAccess, type JobDashboardPayload, type JobOpportunity, type JobOpportunityInput, type JobSettings, type JobStatus, type JobType } from "./types";
+import {
+  opportunityStatuses,
+  type EmploymentType,
+  type Opportunity,
+  type OpportunityBoardSettings,
+  type OpportunityDashboardAccess,
+  type OpportunityDashboardPayload,
+  type OpportunityInput,
+  type OpportunityKind,
+  type OpportunityStatus,
+} from "./types";
 
 const ATTACHMENT_BUCKET = "job-attachments";
 
-const jobSelect = `
+const opportunitySelect = `
   id,
   title,
   slug,
+  kind,
   organisation,
   location,
   description,
@@ -24,7 +35,7 @@ const jobSelect = `
   application_link,
   deadline,
   salary,
-  job_type,
+  employment_type,
   organisation_contact,
   attachment_path,
   attachment_name,
@@ -34,10 +45,11 @@ const jobSelect = `
   updated_at
 `;
 
-type JobOpportunityRow = {
+type OpportunityRow = {
   id: string;
   title: string;
   slug: string;
+  kind: OpportunityKind;
   organisation: string;
   location: string;
   description: string;
@@ -46,12 +58,12 @@ type JobOpportunityRow = {
   application_link: string | null;
   deadline: string | null;
   salary: string | null;
-  job_type: JobType | null;
+  employment_type: EmploymentType | null;
   organisation_contact: string | null;
   attachment_path: string | null;
   attachment_name: string | null;
   attachment_content_type: string | null;
-  status: JobStatus;
+  status: OpportunityStatus;
   created_at: string;
   updated_at: string;
 };
@@ -69,11 +81,12 @@ function publicAttachmentUrl(path: string | null) {
   return publicUrl;
 }
 
-function mapJobOpportunity(row: JobOpportunityRow): JobOpportunity {
+function mapOpportunity(row: OpportunityRow): Opportunity {
   return {
     id: row.id,
     title: row.title,
     slug: row.slug,
+    kind: row.kind,
     organisation: row.organisation,
     location: row.location,
     description: row.description,
@@ -82,7 +95,7 @@ function mapJobOpportunity(row: JobOpportunityRow): JobOpportunity {
     applicationLink: row.application_link,
     deadline: row.deadline,
     salary: row.salary,
-    jobType: row.job_type,
+    employmentType: row.employment_type,
     organisationContact: row.organisation_contact,
     attachmentPath: row.attachment_path,
     attachmentName: row.attachment_name,
@@ -103,9 +116,10 @@ function todayDateKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function toMutation(input: JobOpportunityInput) {
+function toMutation(input: OpportunityInput) {
   return {
     title: input.title.trim(),
+    kind: input.kind,
     organisation: input.organisation.trim(),
     location: input.location.trim(),
     description: input.description.trim(),
@@ -114,37 +128,43 @@ function toMutation(input: JobOpportunityInput) {
     application_link: clean(input.applicationLink),
     deadline: clean(input.deadline),
     salary: clean(input.salary),
-    job_type: input.jobType || null,
+    // Enforced here rather than in the form so switching a posting away from
+    // Job can never leave a stale "Part-time" behind.
+    employment_type: input.kind === "job" ? input.employmentType || null : null,
     organisation_contact: clean(input.organisationContact),
     updated_at: new Date().toISOString(),
   };
 }
 
-function inputFromJob(job: JobOpportunity): JobOpportunityInput {
+function inputFromOpportunity(opportunity: Opportunity): OpportunityInput {
   return {
-    id: job.id,
-    title: job.title,
-    organisation: job.organisation,
-    location: job.location,
-    description: job.description,
-    requirements: job.requirements ?? "",
-    applicationInstructions: job.applicationInstructions ?? "",
-    applicationLink: job.applicationLink ?? "",
-    deadline: job.deadline ?? "",
-    salary: job.salary ?? "",
-    jobType: job.jobType ?? "",
-    organisationContact: job.organisationContact ?? "",
+    id: opportunity.id,
+    title: opportunity.title,
+    kind: opportunity.kind,
+    organisation: opportunity.organisation,
+    location: opportunity.location,
+    description: opportunity.description,
+    requirements: opportunity.requirements ?? "",
+    applicationInstructions: opportunity.applicationInstructions ?? "",
+    applicationLink: opportunity.applicationLink ?? "",
+    deadline: opportunity.deadline ?? "",
+    salary: opportunity.salary ?? "",
+    employmentType: opportunity.employmentType ?? "",
+    organisationContact: opportunity.organisationContact ?? "",
   };
 }
 
-function assertStatus(value: JobStatus) {
-  if (!jobStatuses.includes(value)) {
-    throw new Error("Job status is not valid.");
+function assertStatus(value: OpportunityStatus) {
+  if (!opportunityStatuses.includes(value)) {
+    throw new Error("Opportunity status is not valid.");
   }
 }
 
-function assertAllowedStatusTransition(current: JobStatus, next: JobStatus) {
-  const allowed: Record<JobStatus, JobStatus[]> = {
+function assertAllowedStatusTransition(
+  current: OpportunityStatus,
+  next: OpportunityStatus,
+) {
+  const allowed: Record<OpportunityStatus, OpportunityStatus[]> = {
     draft: ["published", "archived"],
     published: ["closed", "archived"],
     closed: ["archived"],
@@ -154,13 +174,13 @@ function assertAllowedStatusTransition(current: JobStatus, next: JobStatus) {
   if (current === next) return;
 
   if (!allowed[current].includes(next)) {
-    throw new Error(`Cannot move a ${current} job to ${next}.`);
+    throw new Error(`Cannot move a ${current} opportunity to ${next}.`);
   }
 }
 
-async function uniqueSlugFor(input: JobOpportunityInput, currentSlug?: string) {
+async function uniqueSlugFor(input: OpportunityInput, currentSlug?: string) {
   const { data, error } = await createServerSupabaseClient()
-    .from("job_opportunities")
+    .from("opportunities")
     .select("slug");
 
   if (error) throw new Error(error.message);
@@ -182,7 +202,7 @@ function extensionForContentType(contentType: string) {
   return "file";
 }
 
-async function uploadAttachment(jobId: string, file: File) {
+async function uploadAttachment(opportunityId: string, file: File) {
   const validation = validateAttachment(file);
 
   if (!validation.ok) {
@@ -193,7 +213,7 @@ async function uploadAttachment(jobId: string, file: File) {
     return null;
   }
 
-  const path = `${jobId}/${Date.now()}.${extensionForContentType(file.type)}`;
+  const path = `${opportunityId}/${Date.now()}.${extensionForContentType(file.type)}`;
   const buffer = Buffer.from(await file.arrayBuffer());
   const { error } = await createServerSupabaseClient()
     .storage
@@ -223,9 +243,9 @@ async function removeAttachmentPath(path: string | null) {
   if (error) throw new Error(error.message);
 }
 
-export async function closeExpiredPublishedJobs() {
+export async function closeExpiredPublishedOpportunities() {
   const { error } = await createServerSupabaseClient()
-    .from("job_opportunities")
+    .from("opportunities")
     .update({ status: "closed", updated_at: new Date().toISOString() })
     .eq("status", "published")
     .not("deadline", "is", null)
@@ -236,9 +256,9 @@ export async function closeExpiredPublishedJobs() {
   }
 }
 
-export async function getJobSettings(): Promise<JobSettings> {
+export async function getOpportunityBoardSettings(): Promise<OpportunityBoardSettings> {
   const { data, error } = await createServerSupabaseClient()
-    .from("job_board_settings")
+    .from("opportunity_board_settings")
     .select("welfare_whatsapp_number")
     .eq("id", true)
     .maybeSingle();
@@ -250,59 +270,63 @@ export async function getJobSettings(): Promise<JobSettings> {
   };
 }
 
-export async function getPublicJobs(): Promise<JobOpportunity[]> {
-  await closeExpiredPublishedJobs();
+export async function getPublicOpportunities(): Promise<Opportunity[]> {
+  await closeExpiredPublishedOpportunities();
 
   const { data, error } = await createServerSupabaseClient()
-    .from("job_opportunities")
-    .select(jobSelect)
+    .from("opportunities")
+    .select(opportunitySelect)
     .eq("status", "published")
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
 
-  return (data as JobOpportunityRow[]).map(mapJobOpportunity);
+  return (data as OpportunityRow[]).map(mapOpportunity);
 }
 
-export async function getPublicJobBySlug(
+export async function getPublicOpportunityBySlug(
   slug: string,
-): Promise<JobOpportunity | null> {
-  await closeExpiredPublishedJobs();
+): Promise<Opportunity | null> {
+  await closeExpiredPublishedOpportunities();
 
   const { data, error } = await createServerSupabaseClient()
-    .from("job_opportunities")
-    .select(jobSelect)
+    .from("opportunities")
+    .select(opportunitySelect)
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
 
   if (error) throw new Error(error.message);
 
-  return data ? mapJobOpportunity(data as JobOpportunityRow) : null;
+  return data ? mapOpportunity(data as OpportunityRow) : null;
 }
 
-export async function getJobDashboardPayload(): Promise<JobDashboardPayload> {
-  await closeExpiredPublishedJobs();
+export async function getOpportunityDashboardPayload(): Promise<OpportunityDashboardPayload> {
+  await closeExpiredPublishedOpportunities();
 
-  const [settings, jobsResult] = await Promise.all([
-    getJobSettings(),
+  const [settings, opportunitiesResult] = await Promise.all([
+    getOpportunityBoardSettings(),
     createServerSupabaseClient()
-      .from("job_opportunities")
-      .select(jobSelect)
+      .from("opportunities")
+      .select(opportunitySelect)
       .order("updated_at", { ascending: false }),
   ]);
 
-  if (jobsResult.error) throw new Error(jobsResult.error.message);
+  if (opportunitiesResult.error) {
+    throw new Error(opportunitiesResult.error.message);
+  }
 
   return {
     settings,
-    jobs: (jobsResult.data as JobOpportunityRow[]).map(mapJobOpportunity),
+    opportunities: (opportunitiesResult.data as OpportunityRow[]).map(
+      mapOpportunity,
+    ),
   };
 }
 
-export async function resolveJobDashboardAccess(
+export async function resolveOpportunityDashboardAccess(
   code: string,
-): Promise<JobDashboardAccess | null> {
+): Promise<OpportunityDashboardAccess | null> {
   const access = await resolveAccessCode(code);
 
   if (!access) return null;
@@ -319,10 +343,10 @@ export async function resolveJobDashboardAccess(
   return null;
 }
 
-export async function assertJobDashboardSession(
+export async function assertOpportunityDashboardSession(
   token: string,
-): Promise<JobDashboardAccess> {
-  const session = verifyJobDashboardSession(token);
+): Promise<OpportunityDashboardAccess> {
+  const session = verifyOpportunityDashboardSession(token);
 
   if (!session.ok) {
     throw new Error(session.reason === "expired" ? "expired" : "invalid");
@@ -352,15 +376,15 @@ export async function assertJobDashboardSession(
   };
 }
 
-export async function saveJobOpportunity(
+export async function saveOpportunity(
   token: string,
-  input: JobOpportunityInput,
+  input: OpportunityInput,
   attachment?: File | null,
-): Promise<JobDashboardPayload> {
-  await assertJobDashboardSession(token);
-  await closeExpiredPublishedJobs();
+): Promise<OpportunityDashboardPayload> {
+  await assertOpportunityDashboardSession(token);
+  await closeExpiredPublishedOpportunities();
 
-  const validation = validateJobDraft(input);
+  const validation = validateOpportunityDraft(input);
 
   if (!validation.ok) {
     throw new Error(validation.message);
@@ -371,45 +395,49 @@ export async function saveJobOpportunity(
 
   if (input.id) {
     const { data: existing, error: existingError } = await supabase
-      .from("job_opportunities")
-      .select(jobSelect)
+      .from("opportunities")
+      .select(opportunitySelect)
       .eq("id", input.id)
       .maybeSingle();
 
     if (existingError) throw new Error(existingError.message);
-    if (!existing) throw new Error("Job was not found.");
+    if (!existing) throw new Error("Opportunity was not found.");
 
-    const job = mapJobOpportunity(existing as JobOpportunityRow);
+    const opportunity = mapOpportunity(existing as OpportunityRow);
     const publishValidation =
-      job.status === "published" ? validateJobPublish(input) : { ok: true as const };
+      opportunity.status === "published"
+        ? validateOpportunityPublish(input)
+        : { ok: true as const };
 
     if (!publishValidation.ok) {
       throw new Error(publishValidation.message);
     }
 
     const slug =
-      job.status === "draft" ? await uniqueSlugFor(input, job.slug) : job.slug;
+      opportunity.status === "draft"
+        ? await uniqueSlugFor(input, opportunity.slug)
+        : opportunity.slug;
     const attachmentMutation = attachment
-      ? await uploadAttachment(job.id, attachment)
+      ? await uploadAttachment(opportunity.id, attachment)
       : null;
 
     if (attachmentMutation) {
-      await removeAttachmentPath(job.attachmentPath);
+      await removeAttachmentPath(opportunity.attachmentPath);
     }
 
     const { error } = await supabase
-      .from("job_opportunities")
+      .from("opportunities")
       .update({ ...mutation, slug, ...attachmentMutation })
       .eq("id", input.id);
 
     if (error) throw new Error(error.message);
 
-    return getJobDashboardPayload();
+    return getOpportunityDashboardPayload();
   }
 
   const slug = await uniqueSlugFor(input);
   const { data: inserted, error: insertError } = await supabase
-    .from("job_opportunities")
+    .from("opportunities")
     .insert({ ...mutation, slug, status: "draft" })
     .select("id")
     .single();
@@ -422,40 +450,42 @@ export async function saveJobOpportunity(
 
   if (attachmentMutation) {
     const { error } = await supabase
-      .from("job_opportunities")
+      .from("opportunities")
       .update(attachmentMutation)
       .eq("id", inserted.id);
 
     if (error) throw new Error(error.message);
   }
 
-  return getJobDashboardPayload();
+  return getOpportunityDashboardPayload();
 }
 
-export async function setJobOpportunityStatus(
+export async function setOpportunityStatus(
   token: string,
-  jobId: string,
-  status: JobStatus,
-): Promise<JobDashboardPayload> {
-  await assertJobDashboardSession(token);
-  await closeExpiredPublishedJobs();
+  opportunityId: string,
+  status: OpportunityStatus,
+): Promise<OpportunityDashboardPayload> {
+  await assertOpportunityDashboardSession(token);
+  await closeExpiredPublishedOpportunities();
   assertStatus(status);
 
   const supabase = createServerSupabaseClient();
   const { data: existing, error: existingError } = await supabase
-    .from("job_opportunities")
-    .select(jobSelect)
-    .eq("id", jobId)
+    .from("opportunities")
+    .select(opportunitySelect)
+    .eq("id", opportunityId)
     .maybeSingle();
 
   if (existingError) throw new Error(existingError.message);
-  if (!existing) throw new Error("Job was not found.");
+  if (!existing) throw new Error("Opportunity was not found.");
 
-  const job = mapJobOpportunity(existing as JobOpportunityRow);
-  assertAllowedStatusTransition(job.status, status);
+  const opportunity = mapOpportunity(existing as OpportunityRow);
+  assertAllowedStatusTransition(opportunity.status, status);
 
   if (status === "published") {
-    const validation = validateJobPublish(inputFromJob(job));
+    const validation = validateOpportunityPublish(
+      inputFromOpportunity(opportunity),
+    );
 
     if (!validation.ok) {
       throw new Error(validation.message);
@@ -463,60 +493,60 @@ export async function setJobOpportunityStatus(
   }
 
   const { error } = await supabase
-    .from("job_opportunities")
+    .from("opportunities")
     .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", jobId);
+    .eq("id", opportunityId);
 
   if (error) throw new Error(error.message);
 
-  return getJobDashboardPayload();
+  return getOpportunityDashboardPayload();
 }
 
-export async function removeJobAttachment(
+export async function removeOpportunityAttachment(
   token: string,
-  jobId: string,
-): Promise<JobDashboardPayload> {
-  await assertJobDashboardSession(token);
+  opportunityId: string,
+): Promise<OpportunityDashboardPayload> {
+  await assertOpportunityDashboardSession(token);
 
   const supabase = createServerSupabaseClient();
   const { data: existing, error: existingError } = await supabase
-    .from("job_opportunities")
+    .from("opportunities")
     .select("attachment_path")
-    .eq("id", jobId)
+    .eq("id", opportunityId)
     .maybeSingle();
 
   if (existingError) throw new Error(existingError.message);
-  if (!existing) throw new Error("Job was not found.");
+  if (!existing) throw new Error("Opportunity was not found.");
 
   await removeAttachmentPath(existing.attachment_path);
 
   const { error } = await supabase
-    .from("job_opportunities")
+    .from("opportunities")
     .update({
       attachment_path: null,
       attachment_name: null,
       attachment_content_type: null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", jobId);
+    .eq("id", opportunityId);
 
   if (error) throw new Error(error.message);
 
-  return getJobDashboardPayload();
+  return getOpportunityDashboardPayload();
 }
 
-export async function saveJobBoardSettings(
+export async function saveOpportunityBoardSettings(
   token: string,
   welfareWhatsappNumber: string,
-): Promise<JobDashboardPayload> {
-  await assertJobDashboardSession(token);
+): Promise<OpportunityDashboardPayload> {
+  await assertOpportunityDashboardSession(token);
 
   const validation = validateWhatsappNumber(welfareWhatsappNumber);
 
   if (!validation.ok) throw new Error(validation.message);
 
   const { error } = await createServerSupabaseClient()
-    .from("job_board_settings")
+    .from("opportunity_board_settings")
     .upsert({
       id: true,
       welfare_whatsapp_number: clean(welfareWhatsappNumber),
@@ -525,5 +555,5 @@ export async function saveJobBoardSettings(
 
   if (error) throw new Error(error.message);
 
-  return getJobDashboardPayload();
+  return getOpportunityDashboardPayload();
 }

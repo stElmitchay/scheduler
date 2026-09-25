@@ -1148,21 +1148,21 @@ select:focus-visible {
   }
 }
 
-.jobs-filter-shell {
+.opportunities-filter-shell {
   display: grid;
   gap: 12px;
   margin: 18px 0 20px;
 }
 
-.jobs-toolbar {
+.opportunities-toolbar {
   display: grid;
   grid-template-columns: auto 38px;
   align-items: center;
   gap: 8px;
 }
 
-.jobs-filter-button,
-.jobs-search-toggle {
+.opportunities-filter-button,
+.opportunities-search-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1178,31 +1178,31 @@ select:focus-visible {
   line-height: 1;
 }
 
-.jobs-filter-button {
+.opportunities-filter-button {
   justify-self: start;
   padding: 0 13px;
 }
 
-.jobs-filter-button.active,
-.jobs-search-toggle.active {
+.opportunities-filter-button.active,
+.opportunities-search-toggle.active {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--bg);
 }
 
-.jobs-filter-button svg,
-.jobs-search-toggle svg {
+.opportunities-filter-button svg,
+.opportunities-search-toggle svg {
   flex-shrink: 0;
 }
 
-.jobs-search-toggle {
+.opportunities-search-toggle {
   justify-self: end;
   width: 38px;
   padding: 0;
 }
 
-.jobs-search-panel,
-.jobs-filters-panel {
+.opportunities-search-panel,
+.opportunities-filters-panel {
   display: grid;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1210,17 +1210,17 @@ select:focus-visible {
   padding: 12px;
 }
 
-.jobs-search-panel,
-.jobs-filters-panel label {
+.opportunities-search-panel,
+.opportunities-filters-panel label {
   gap: 6px;
 }
 
-.jobs-filters-panel {
+.opportunities-filters-panel {
   gap: 10px;
 }
 
-.jobs-search-panel span,
-.jobs-filters-panel span {
+.opportunities-search-panel span,
+.opportunities-filters-panel span {
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
@@ -1228,12 +1228,12 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.jobs-search-panel input,
-.jobs-filters-panel select,
-.job-form input,
-.job-form select,
-.job-form textarea,
-.job-settings input {
+.opportunities-search-panel input,
+.opportunities-filters-panel select,
+.opportunity-form input,
+.opportunity-form select,
+.opportunity-form textarea,
+.opportunity-settings input {
   box-sizing: border-box;
   width: 100%;
   border: 1px solid var(--line);
@@ -1243,12 +1243,12 @@ select:focus-visible {
   padding: 12px;
 }
 
-.jobs-list {
+.opportunities-list {
   display: grid;
   gap: 10px;
 }
 
-.job-card {
+.opportunity-card {
   display: grid;
   gap: 5px;
   border: 1px solid var(--line);
@@ -1258,50 +1258,75 @@ select:focus-visible {
   text-decoration: none;
 }
 
-.job-card strong {
+.opportunity-card strong {
   font-size: 17px;
   line-height: 1.2;
 }
 
-.job-card span,
-.job-card small,
-.job-detail-meta,
-.job-detail-deadline {
+.opportunity-card span,
+.opportunity-card small,
+.opportunity-detail-meta,
+.opportunity-detail-deadline {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
 }
 
-.job-card-meta {
+.opportunity-card-meta {
   color: var(--accent);
   font-weight: 600;
 }
 
-.job-detail {
+.opportunity-card-top {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.opportunity-kind-badge {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 2px 9px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.opportunity-detail .opportunity-kind-badge {
+  display: inline-block;
+  margin-top: 8px;
+}
+
+.opportunity-detail {
   display: grid;
   gap: 18px;
   margin-top: 22px;
 }
 
-.job-detail h1 {
+.opportunity-detail h1 {
   margin: 0;
   font-size: clamp(28px, 8vw, 40px);
   line-height: 1.05;
 }
 
-.job-detail section {
+.opportunity-detail section {
   display: grid;
   gap: 8px;
   border-top: 1px solid var(--line);
   padding-top: 16px;
 }
 
-.job-detail h2 {
+.opportunity-detail h2 {
   margin: 0;
   font-size: 16px;
 }
 
-.job-detail p {
+.opportunity-detail p {
   margin: 0;
   color: var(--muted);
   font-size: 14px;
@@ -1309,37 +1334,37 @@ select:focus-visible {
   white-space: pre-wrap;
 }
 
-.job-actions {
+.opportunity-actions {
   display: grid;
   gap: 10px;
 }
 
-.job-action-link {
+.opportunity-action-link {
   display: grid;
   place-items: center;
   text-align: center;
   text-decoration: none;
 }
 
-.job-unavailable {
+.opportunity-unavailable {
   margin-top: 28px;
 }
 
-.job-form,
-.job-settings {
+.opportunity-form,
+.opportunity-settings {
   display: grid;
   gap: 14px;
   margin-top: 22px;
 }
 
-.job-form label,
-.job-settings label {
+.opportunity-form label,
+.opportunity-settings label {
   display: grid;
   gap: 6px;
 }
 
-.job-form label > span,
-.job-settings label > span {
+.opportunity-form label > span,
+.opportunity-settings label > span {
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
@@ -1347,24 +1372,24 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.job-form textarea {
+.opportunity-form textarea {
   min-height: 110px;
   resize: vertical;
 }
 
-.job-dashboard-actions {
+.opportunity-dashboard-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 20px;
 }
 
-.job-dashboard-actions .bulletin-primary,
-.job-dashboard-actions .bulletin-secondary-full {
+.opportunity-dashboard-actions .bulletin-primary,
+.opportunity-dashboard-actions .bulletin-secondary-full {
   margin-top: 0;
 }
 
-.job-tabs {
+.opportunity-tabs {
   display: flex;
   gap: 8px;
   margin: 20px 0;
@@ -1372,8 +1397,8 @@ select:focus-visible {
   padding-bottom: 4px;
 }
 
-.job-tabs button,
-.job-card-actions button {
+.opportunity-tabs button,
+.opportunity-card-actions button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1388,24 +1413,24 @@ select:focus-visible {
   white-space: nowrap;
 }
 
-.job-tabs button.active {
+.opportunity-tabs button.active {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--bg);
 }
 
-.job-card-actions {
+.opportunity-card-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
 }
 
-.job-card-actions button svg {
+.opportunity-card-actions button svg {
   flex-shrink: 0;
 }
 
-.job-menu-popup {
+.opportunity-menu-popup {
   position: relative;
   display: grid;
   gap: 10px;
@@ -1416,15 +1441,15 @@ select:focus-visible {
   padding: 22px;
 }
 
-.job-menu-popup h2 {
+.opportunity-menu-popup h2 {
   margin: 4px 0 8px;
   padding-right: 38px;
   font-size: 22px;
   line-height: 1.1;
 }
 
-.job-menu-popup .bulletin-primary,
-.job-menu-popup .bulletin-secondary-full {
+.opportunity-menu-popup .bulletin-primary,
+.opportunity-menu-popup .bulletin-secondary-full {
   margin-top: 0;
 }
 

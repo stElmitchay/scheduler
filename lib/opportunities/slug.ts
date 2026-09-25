@@ -1,4 +1,4 @@
-export function slugifyJobTitle(title: string) {
+export function slugifyOpportunityTitle(title: string) {
   const slug = title
     .trim()
     .toLowerCase()
@@ -7,11 +7,11 @@ export function slugifyJobTitle(title: string) {
     .slice(0, 80)
     .replace(/-+$/g, "");
 
-  return slug || "job";
+  return slug || "opportunity";
 }
 
 export function buildUniqueSlug(baseTitle: string, existingSlugs: string[]) {
-  const base = slugifyJobTitle(baseTitle);
+  const base = slugifyOpportunityTitle(baseTitle);
   const taken = new Set(existingSlugs);
 
   if (!taken.has(base)) {

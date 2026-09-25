@@ -1,32 +1,32 @@
 import Link from "next/link";
-import { JobBoard } from "@/components/jobs/job-board";
-import { getPublicJobs } from "@/lib/jobs/data";
+import { OpportunityBoard } from "@/components/opportunities/opportunity-board";
+import { getPublicOpportunities } from "@/lib/opportunities/data";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Job Board",
+  title: "Opportunities Board",
 };
 
-export default async function JobsPage() {
-  const jobs = await getPublicJobs();
+export default async function OpportunitiesPage() {
+  const opportunities = await getPublicOpportunities();
 
   return (
-    <main className="bulletin-page jobs-page">
+    <main className="bulletin-page opportunities-page">
       <div className="bulletin-shell">
         <header className="bulletin-header">
           <div>
             <p className="bulletin-eyebrow">Kharis Church</p>
-            <h1>Job Board</h1>
+            <h1>Opportunities Board</h1>
             <p className="bulletin-subline">
-              Vetted opportunities shared by the Welfare team.
+              Jobs, scholarships, and more, vetted by the Welfare team.
             </p>
           </div>
           <Link className="bulletin-icon-button" href="/" aria-label="Go back">
             <span className="bulletin-back-mark">‹</span>
           </Link>
         </header>
-        <JobBoard jobs={jobs} />
+        <OpportunityBoard opportunities={opportunities} />
       </div>
     </main>
   );

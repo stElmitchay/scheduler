@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { saveJobBoardSettingsAction } from "@/app/jobs/dashboard/actions";
+import { saveOpportunityBoardSettingsAction } from "@/app/opportunities/dashboard/actions";
 import type {
-  JobActionResult,
-  JobDashboardPayload,
-  JobSettings as JobSettingsType,
-} from "@/lib/jobs/types";
+  OpportunityActionResult,
+  OpportunityBoardSettings,
+  OpportunityDashboardPayload,
+} from "@/lib/opportunities/types";
 
-export function JobSettings({
+export function OpportunitySettings({
   token,
   settings,
   busy,
@@ -18,18 +18,22 @@ export function JobSettings({
   onBack,
 }: {
   token: string;
-  settings: JobSettingsType;
+  settings: OpportunityBoardSettings;
   busy: boolean;
   notice: string;
-  run: <T>(call: () => Promise<JobActionResult<T>>) => Promise<T | null>;
-  onSaved: (payload: JobDashboardPayload) => void;
+  run: <T>(
+    call: () => Promise<OpportunityActionResult<T>>,
+  ) => Promise<T | null>;
+  onSaved: (payload: OpportunityDashboardPayload) => void;
   onBack: () => void;
 }) {
   const [number, setNumber] = useState(settings.welfareWhatsappNumber ?? "");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const next = await run(() => saveJobBoardSettingsAction(token, number));
+    const next = await run(() =>
+      saveOpportunityBoardSettingsAction(token, number),
+    );
 
     if (next) onSaved(next);
   }
@@ -40,7 +44,7 @@ export function JobSettings({
         <header className="bulletin-header">
           <div>
             <p className="bulletin-eyebrow">Welfare</p>
-            <h1>Job settings</h1>
+            <h1>Opportunity settings</h1>
           </div>
           <button
             className="bulletin-icon-button"
@@ -51,7 +55,7 @@ export function JobSettings({
             <span className="bulletin-back-mark">‹</span>
           </button>
         </header>
-        <form className="job-settings" onSubmit={submit}>
+        <form className="opportunity-settings" onSubmit={submit}>
           <label>
             <span>WhatsApp number</span>
             <input

@@ -2,27 +2,29 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { refreshJobDashboardAction } from "@/app/jobs/dashboard/actions";
+import { refreshOpportunityDashboardAction } from "@/app/opportunities/dashboard/actions";
 import type {
-  JobActionResult,
-  JobDashboardPayload,
-  JobOpportunity,
-  JobStatus,
-} from "@/lib/jobs/types";
-import { JobDashboardGate } from "./job-dashboard-gate";
-import { JobDashboardList } from "./job-dashboard-list";
-import { JobForm } from "./job-form";
-import { JobSettings } from "./job-settings";
+  Opportunity,
+  OpportunityActionResult,
+  OpportunityDashboardPayload,
+  OpportunityStatus,
+} from "@/lib/opportunities/types";
+import { OpportunityDashboardGate } from "./opportunity-dashboard-gate";
+import { OpportunityDashboardList } from "./opportunity-dashboard-list";
+import { OpportunityForm } from "./opportunity-form";
+import { OpportunitySettings } from "./opportunity-settings";
 
-const TOKEN_KEY = "job-dashboard-session";
+const TOKEN_KEY = "opportunity-dashboard-session";
 
-type Screen = JobStatus | "settings" | "form";
+type Screen = OpportunityStatus | "settings" | "form";
 
-export function JobDashboard() {
+export function OpportunityDashboard() {
   const [token, setToken] = useState<string | null>(null);
-  const [payload, setPayload] = useState<JobDashboardPayload | null>(null);
+  const [payload, setPayload] = useState<OpportunityDashboardPayload | null>(
+    null,
+  );
   const [screen, setScreen] = useState<Screen>("draft");
-  const [editingJob, setEditingJob] = useState<JobOpportunity | null>(null);
+  const [editing, setEditing] = useState<Opportunity | null>(null);
   const [notice, setNotice] = useState("");
   const [gateNotice, setGateNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,7 +38,9 @@ export function JobDashboard() {
   }, []);
 
   const run = useCallback(
-    async <T,>(call: () => Promise<JobActionResult<T>>): Promise<T | null> => {
+    async <T,>(
+      call: () => Promise<OpportunityActionResult<T>>,
+    ): Promise<T | null> => {
       setBusy(true);
 
       try {
@@ -72,7 +76,7 @@ export function JobDashboard() {
         return;
       }
 
-      const result = await refreshJobDashboardAction(stored);
+      const result = await refreshOpportunityDashboardAction(stored);
 
       if (cancelled) return;
 
@@ -104,7 +108,7 @@ export function JobDashboard() {
 
   if (!token || !payload) {
     return (
-      <JobDashboardGate
+      <OpportunityDashboardGate
         notice={gateNotice}
         onUnlocked={(nextPayload, nextToken) => {
           sessionStorage.setItem(TOKEN_KEY, nextToken);
@@ -117,22 +121,22 @@ export function JobDashboard() {
   }
 
   if (screen === "form") {
-    const returnScreen = editingJob?.status ?? "draft";
+    const returnScreen = editing?.status ?? "draft";
 
     return (
-      <JobForm
+      <OpportunityForm
         token={token}
-        job={editingJob}
+        opportunity={editing}
         busy={busy}
         notice={notice}
         run={run}
         onSaved={(nextPayload) => {
           setPayload(nextPayload);
-          setEditingJob(null);
+          setEditing(null);
           setScreen(returnScreen);
         }}
         onBack={() => {
-          setEditingJob(null);
+          setEditing(null);
           setNotice("");
           setScreen(returnScreen);
         }}
@@ -142,7 +146,7 @@ export function JobDashboard() {
 
   if (screen === "settings") {
     return (
-      <JobSettings
+      <OpportunitySettings
         token={token}
         settings={payload.settings}
         busy={busy}
@@ -166,13 +170,13 @@ export function JobDashboard() {
         <header className="bulletin-header">
           <div>
             <p className="bulletin-eyebrow">Welfare</p>
-            <h1>Job Dashboard</h1>
+            <h1>Opportunities Dashboard</h1>
           </div>
           <Link className="bulletin-icon-button" href="/" aria-label="Go back">
             <span className="bulletin-back-mark">‹</span>
           </Link>
         </header>
-        <JobDashboardList
+        <OpportunityDashboardList
           token={token}
           payload={payload}
           activeStatus={screen}
@@ -190,12 +194,12 @@ export function JobDashboard() {
           }}
           onCreate={() => {
             setNotice("");
-            setEditingJob(null);
+            setEditing(null);
             setScreen("form");
           }}
-          onEdit={(job) => {
+          onEdit={(opportunity) => {
             setNotice("");
-            setEditingJob(job);
+            setEditing(opportunity);
             setScreen("form");
           }}
         />

@@ -1,4 +1,9 @@
-import { jobTypes, type JobOpportunityInput, type ValidationResult } from "./types";
+import {
+  employmentTypes,
+  opportunityKinds,
+  type OpportunityInput,
+  type ValidationResult,
+} from "./types";
 
 const allowedAttachmentTypes = new Set([
   "application/pdf",
@@ -22,14 +27,20 @@ function validOptionalUrl(value: string) {
   }
 }
 
-export function validateJobDraft(input: JobOpportunityInput): ValidationResult {
-  if (!present(input.title)) return { ok: false, message: "Job title is required." };
+export function validateOpportunityDraft(
+  input: OpportunityInput,
+): ValidationResult {
+  if (!present(input.title)) return { ok: false, message: "Title is required." };
   if (!present(input.organisation)) return { ok: false, message: "Organisation is required." };
   if (!present(input.location)) return { ok: false, message: "Location is required." };
   if (!present(input.description)) return { ok: false, message: "Description is required." };
 
-  if (input.jobType && !jobTypes.includes(input.jobType)) {
-    return { ok: false, message: "Job type is not valid." };
+  if (!opportunityKinds.includes(input.kind)) {
+    return { ok: false, message: "Opportunity kind is not valid." };
+  }
+
+  if (input.employmentType && !employmentTypes.includes(input.employmentType)) {
+    return { ok: false, message: "Employment type is not valid." };
   }
 
   if (input.applicationLink && !validOptionalUrl(input.applicationLink)) {
@@ -39,8 +50,10 @@ export function validateJobDraft(input: JobOpportunityInput): ValidationResult {
   return { ok: true };
 }
 
-export function validateJobPublish(input: JobOpportunityInput): ValidationResult {
-  const draft = validateJobDraft(input);
+export function validateOpportunityPublish(
+  input: OpportunityInput,
+): ValidationResult {
+  const draft = validateOpportunityDraft(input);
 
   if (!draft.ok) return draft;
 
