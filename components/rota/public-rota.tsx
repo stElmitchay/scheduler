@@ -84,7 +84,7 @@ export function PublicRotaView({ rota }: { rota: PublicRota }) {
 
   return (
     <PublicShell
-      eyebrow={`Kharis \u00b7 ${rota.departmentName}`}
+      eyebrow={`Kharis · ${rota.departmentName}`}
       width="wide"
     >
         <header className="bulletin-header">

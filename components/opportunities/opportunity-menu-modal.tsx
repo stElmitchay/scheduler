@@ -73,8 +73,12 @@ export function OpportunityMenuModal({
 
         {step === "choose" ? (
           <>
+            <p className="bulletin-eyebrow">Kharis Church</p>
             <h2 id="opportunity-menu-title">Opportunities</h2>
-            <nav className="popup-stack" aria-label="Opportunities destinations">
+            <nav
+              className="bulletin-menu-panel modal-menu"
+              aria-label="Opportunities destinations"
+            >
               <button
                 type="button"
                 onClick={() => {
@@ -82,19 +86,24 @@ export function OpportunityMenuModal({
                   router.push("/opportunities");
                 }}
               >
-                <strong>Browse the board</strong>
-                <small>Jobs, scholarships and more. No code needed.</small>
+                <span>
+                  <strong>Browse the board</strong>
+                  <small>Jobs, scholarships and more. No code needed.</small>
+                </span>
                 <b aria-hidden="true">›</b>
               </button>
               <button type="button" onClick={() => setStep("code")}>
-                <strong>Welfare dashboard</strong>
-                <small>Post and manage listings. Welfare or pastor code.</small>
+                <span>
+                  <strong>Welfare dashboard</strong>
+                  <small>Post and manage listings. Welfare or pastor code.</small>
+                </span>
                 <b aria-hidden="true">›</b>
               </button>
             </nav>
           </>
         ) : (
           <>
+            <p className="bulletin-eyebrow">Opportunities</p>
             <h2 id="opportunity-menu-title">Welfare dashboard</h2>
             <form className="bulletin-form" onSubmit={handleSubmit}>
               <label>
