@@ -19,10 +19,21 @@ export function PublicShell({
   return (
     <main className="bulletin-page public-page">
       <div className="public-bar">
-        <Link href="/" className="public-bar-brand">
-          {eyebrow}
-        </Link>
-        {meta ? <span className="public-bar-meta">{meta}</span> : null}
+        {/* The bar's contents sit on the same measure as the page below it,
+            otherwise brand and meta drift to the screen edges while the content
+            stays centred. */}
+        <div
+          className={
+            width === "wide"
+              ? "public-bar-inner public-column-wide"
+              : "public-bar-inner"
+          }
+        >
+          <Link href="/" className="public-bar-brand">
+            {eyebrow}
+          </Link>
+          {meta ? <span className="public-bar-meta">{meta}</span> : null}
+        </div>
       </div>
       <div
         className={

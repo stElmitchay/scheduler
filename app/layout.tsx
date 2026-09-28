@@ -21,13 +21,6 @@ const siteUrl =
       ? `https://${process.env.VERCEL_URL}`
       : productionUrl);
 
-const socialPreview = {
-  url: "/opengraph-image",
-  width: 1200,
-  height: 630,
-  alt: "Kharis Church Freetown scheduling calendar",
-};
-
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -46,14 +39,12 @@ export const metadata: Metadata = {
     siteName: "Kharis Church Freetown",
     type: "website",
     url: "/",
-    images: [socialPreview],
   },
   twitter: {
     card: "summary_large_image",
     title: "Kharis Church Freetown Scheduler",
     description:
       "Shared scheduling and booking calendar for Kharis Church Freetown.",
-    images: [socialPreview],
   },
 };
 
