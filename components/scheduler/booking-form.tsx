@@ -2,7 +2,14 @@
 
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   createBookingAction,
   updateBookingAction,
@@ -75,6 +82,7 @@ export function BookingForm({
     useState<FormActionState | null>(null);
   const [dismissedBlockedState, setDismissedBlockedState] =
     useState<FormActionState | null>(null);
+  const overrideSoftConflictRef = useRef(false);
   const showDepartmentPicker = access.kind === "pastor";
   const spaceIsOptional = activityTypeAllowsOptionalSpace(selectedActivityType);
 
@@ -84,6 +92,32 @@ export function BookingForm({
       onSaved?.(state);
     }
   }, [onSaved, router, state]);
+
+  // Submitting by hand instead of through `<form action={formAction}>`: React 19
+  // calls requestFormReset before running a form action, so every uncontrolled
+  // field is wiped even when the save was refused. Keeping the values is the
+  // whole point of the conflict modal — "Submit anyway" has to resubmit the same
+  // activity, not an empty form.
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+
+    // Consumed once: a soft-conflict override must not carry over to a later
+    // submission with a different time.
+    if (overrideSoftConflictRef.current) {
+      formData.set("skipSoftConflict", "true");
+      overrideSoftConflictRef.current = false;
+    }
+
+    startTransition(() => formAction(formData));
+  }
+
+  function submitAnyway() {
+    overrideSoftConflictRef.current = true;
+    setDismissedWarnState(state);
+    formRef.current?.requestSubmit();
+  }
 
   const conflictModal =
     state.ok === "warn" &&
@@ -126,7 +160,7 @@ export function BookingForm({
                 type="button"
                 className="bulletin-primary"
                 style={{ marginTop: 16 }}
-                onClick={() => formRef.current?.requestSubmit()}
+                onClick={submitAnyway}
               >
                 Submit anyway
               </button>
@@ -185,7 +219,7 @@ export function BookingForm({
       {blockedModal}
     <form
       ref={formRef}
-      action={formAction}
+      onSubmit={handleSubmit}
       className="bulletin-form"
     >
       <input type="hidden" name="accessCode" value={accessCode} />
@@ -289,10 +323,6 @@ export function BookingForm({
           <input name="repeatWeekly" type="checkbox" />
           <span>Repeat weekly for the next 12 weeks</span>
         </label>
-      ) : null}
-
-      {state.ok === "warn" ? (
-        <input type="hidden" name="skipSoftConflict" value="true" />
       ) : null}
 
       {state.ok === false && state.message ? (

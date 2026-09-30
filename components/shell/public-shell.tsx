@@ -7,11 +7,13 @@ import type { ReactNode } from "react";
 // a link shared outward.
 export function PublicShell({
   eyebrow,
+  href = "/",
   meta,
   width = "regular",
   children,
 }: {
   eyebrow: string;
+  href?: string;
   meta?: ReactNode;
   width?: "regular" | "wide";
   children: ReactNode;
@@ -29,7 +31,7 @@ export function PublicShell({
               : "public-bar-inner"
           }
         >
-          <Link href="/" className="public-bar-brand">
+          <Link href={href} className="public-bar-brand">
             {eyebrow}
           </Link>
           {meta ? <span className="public-bar-meta">{meta}</span> : null}

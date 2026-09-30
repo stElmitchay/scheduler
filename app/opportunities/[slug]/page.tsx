@@ -54,7 +54,7 @@ export default async function OpportunityDetailPage({
   ]);
 
   return (
-    <PublicShell eyebrow="Kharis Freetown Opportunities Board">
+    <PublicShell eyebrow="Kharis Freetown Opportunities Board" href="/opportunities">
       {opportunity ? (
         <OpportunityDetail opportunity={opportunity} settings={settings} />
       ) : (
