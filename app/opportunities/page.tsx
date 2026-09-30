@@ -26,7 +26,7 @@ export default async function OpportunitiesPage() {
   const opportunities = await getPublicOpportunities();
 
   return (
-    <PublicShell eyebrow="Kharis Freetown Opportunities Board">
+    <PublicShell eyebrow="Kharis Freetown Opportunities Board" href="/opportunities">
       <OpportunityBoard opportunities={opportunities} />
     </PublicShell>
   );
