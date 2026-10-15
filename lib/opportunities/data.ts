@@ -3,8 +3,10 @@ import { resolveAccessCode } from "@/lib/scheduler/data";
 import { buildUniqueSlug } from "./slug";
 import { verifyOpportunityDashboardSession } from "./session.mjs";
 import {
+  normalizeFollowUpContact,
   validateAttachment,
   validateOpportunityDraft,
+  validateOpportunityFollowUp,
   validateOpportunityPublish,
   validateWhatsappNumber,
 } from "./validation";
@@ -15,6 +17,9 @@ import {
   type OpportunityBoardSettings,
   type OpportunityDashboardAccess,
   type OpportunityDashboardPayload,
+  type OpportunityFollowUpInput,
+  type OpportunityFollowUpOpportunity,
+  type OpportunityFollowUpReport,
   type OpportunityInput,
   type OpportunityKind,
   type OpportunityStatus,
@@ -66,6 +71,22 @@ type OpportunityRow = {
   status: OpportunityStatus;
   created_at: string;
   updated_at: string;
+};
+
+type OpportunityFollowUpRow = {
+  id: string;
+  opportunity_id: string;
+  name: string;
+  contact_detail: string;
+  did_apply: boolean;
+  shortlisted_or_interviewed: boolean;
+  offered_position: boolean;
+  started_working: boolean;
+  started_at: string | null;
+  retained_after_three_months: boolean | null;
+  created_at: string;
+  updated_at: string;
+  opportunities: { title: string; organisation: string };
 };
 
 function publicAttachmentUrl(path: string | null) {
@@ -282,6 +303,95 @@ export async function getPublicOpportunities(): Promise<Opportunity[]> {
   if (error) throw new Error(error.message);
 
   return (data as OpportunityRow[]).map(mapOpportunity);
+}
+
+export async function getOpportunityFollowUpOptions(): Promise<
+  OpportunityFollowUpOpportunity[]
+> {
+  const { data, error } = await createServerSupabaseClient()
+    .from("opportunities")
+    .select("id, slug, title, organisation")
+    .in("kind", ["job", "internship"])
+    .in("status", ["published", "closed"])
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return data as OpportunityFollowUpOpportunity[];
+}
+
+export async function saveOpportunityFollowUp(
+  input: OpportunityFollowUpInput,
+): Promise<void> {
+  const validation = validateOpportunityFollowUp(input);
+
+  if (!validation.ok) throw new Error(validation.message);
+
+  const supabase = createServerSupabaseClient();
+  const { data: opportunity, error: opportunityError } = await supabase
+    .from("opportunities")
+    .select("id")
+    .eq("id", input.opportunityId)
+    .in("kind", ["job", "internship"])
+    .in("status", ["published", "closed"])
+    .maybeSingle();
+
+  if (opportunityError) throw new Error(opportunityError.message);
+  if (!opportunity) {
+    throw new Error("Choose a current or closed job or internship.");
+  }
+
+  const { error } = await supabase.from("opportunity_follow_ups").upsert(
+    {
+      opportunity_id: input.opportunityId,
+      name: input.name.trim(),
+      contact_detail: input.contactDetail.trim(),
+      contact_key: normalizeFollowUpContact(input.contactDetail),
+      did_apply: input.didApply,
+      shortlisted_or_interviewed: input.shortlistedOrInterviewed,
+      offered_position: input.offeredPosition,
+      started_working: input.startedWorking,
+      started_at: input.startedAt,
+      retained_after_three_months: input.retainedAfterThreeMonths,
+      follow_up_consent: input.followUpConsent,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "opportunity_id,contact_key" },
+  );
+
+  if (error) throw new Error(error.message);
+}
+
+export async function getOpportunityFollowUpReports(
+  token: string,
+): Promise<OpportunityFollowUpReport[]> {
+  await assertOpportunityDashboardSession(token);
+
+  const { data, error } = await createServerSupabaseClient()
+    .from("opportunity_follow_ups")
+    .select(
+      "id, opportunity_id, name, contact_detail, did_apply, shortlisted_or_interviewed, offered_position, started_working, started_at, retained_after_three_months, created_at, updated_at, opportunities!inner(title, organisation)",
+    )
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return ((data ?? []) as unknown as OpportunityFollowUpRow[]).map((row) => ({
+    id: row.id,
+    opportunityId: row.opportunity_id,
+    opportunityTitle: row.opportunities.title,
+    organisation: row.opportunities.organisation,
+    name: row.name,
+    contactDetail: row.contact_detail,
+    didApply: row.did_apply,
+    shortlistedOrInterviewed: row.shortlisted_or_interviewed,
+    offeredPosition: row.offered_position,
+    startedWorking: row.started_working,
+    startedAt: row.started_at,
+    retainedAfterThreeMonths: row.retained_after_three_months,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }
 
 export async function getPublicOpportunityBySlug(

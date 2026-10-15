@@ -36,6 +36,7 @@ Run the SQL in `supabase/` against the project, in this order:
 | `rota-schema.sql` | To enable `/rota` |
 | `opportunity-board-schema.sql` | To enable `/opportunities` on a new project |
 | `opportunities-rename-migration.sql` | Instead of the line above, on a project that already ran the old `job-board-schema.sql` |
+| `opportunity-follow-up-migration.sql` | After the opportunity board schema or rename migration, to collect application outcomes |
 
 Each file is safe to run more than once.
 
@@ -134,6 +135,11 @@ description, and filter by kind, employment type, and location.
   and each page gains a button that opens WhatsApp with the details filled in,
   so someone who needs help applying can just send it. Use international format
   with no `+`, for example `23276123456`. Leave it blank to hide the button.
+- **Employment follow-up** — applicants can submit updates at
+  `/opportunities/follow-up` or from a job or internship page. They can report
+  applying, being shortlisted/interviewed, receiving an offer, starting work,
+  and staying in the role for three months. Welfare and pastor dashboard users
+  can see self-reported totals, applicant contact details, and check-ins due.
 
 ## Tests
 

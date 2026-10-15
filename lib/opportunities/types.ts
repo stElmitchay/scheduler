@@ -102,6 +102,41 @@ export type OpportunityDashboardPayload = {
   opportunities: Opportunity[];
 };
 
+export type OpportunityFollowUpOpportunity = Pick<
+  Opportunity,
+  "id" | "slug" | "title" | "organisation"
+>;
+
+export type OpportunityFollowUpInput = {
+  opportunityId: string;
+  name: string;
+  contactDetail: string;
+  didApply: boolean;
+  shortlistedOrInterviewed: boolean;
+  offeredPosition: boolean;
+  startedWorking: boolean;
+  startedAt: string | null;
+  retainedAfterThreeMonths: boolean | null;
+  followUpConsent: boolean;
+};
+
+export type OpportunityFollowUpReport = {
+  id: string;
+  opportunityId: string;
+  opportunityTitle: string;
+  organisation: string;
+  name: string;
+  contactDetail: string;
+  didApply: boolean;
+  shortlistedOrInterviewed: boolean;
+  offeredPosition: boolean;
+  startedWorking: boolean;
+  startedAt: string | null;
+  retainedAfterThreeMonths: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type OpportunityDashboardAccess =
   | { kind: "pastor" }
   | { kind: "welfare"; departmentId: string; departmentName: "Welfare" };

@@ -6,6 +6,7 @@ import { signOpportunityDashboardSession } from "@/lib/opportunities/session.mjs
 import type {
   OpportunityActionResult,
   OpportunityDashboardPayload,
+  OpportunityFollowUpReport,
   OpportunityInput,
   OpportunityStatus,
 } from "@/lib/opportunities/types";
@@ -123,6 +124,14 @@ export async function refreshOpportunityDashboardAction(
     await opportunities.assertOpportunityDashboardSession(token);
     return opportunities.getOpportunityDashboardPayload();
   });
+}
+
+export async function getOpportunityFollowUpReportsAction(
+  token: string,
+): Promise<OpportunityActionResult<OpportunityFollowUpReport[]>> {
+  return runDashboardAction(() =>
+    opportunities.getOpportunityFollowUpReports(token),
+  );
 }
 
 export async function saveOpportunityAction(

@@ -62,6 +62,16 @@ export function OpportunityBoard({
         />
       </label>
 
+      <div className="opportunity-follow-up-entry">
+        <p>Applied for a job or internship? Share an update with the Welfare team.</p>
+        <Link
+          className="bulletin-secondary-full opportunity-follow-up-entry-link"
+          href="/opportunities/follow-up"
+        >
+          Update your application
+        </Link>
+      </div>
+
       <div className="bulletin-filters" aria-label="Kind filters">
         <button
           type="button"

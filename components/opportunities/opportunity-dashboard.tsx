@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { refreshOpportunityDashboardAction } from "@/app/opportunities/dashboard/actions";
+import {
+  getOpportunityFollowUpReportsAction,
+  refreshOpportunityDashboardAction,
+} from "@/app/opportunities/dashboard/actions";
 import { ShellWithMenus } from "@/components/shell/shell-with-menus";
 import { deadlineLabel } from "@/lib/opportunities/display.mjs";
 import { OPPORTUNITY_DASHBOARD_TOKEN_KEY } from "@/lib/opportunities/session-storage";
@@ -10,11 +13,13 @@ import type {
   Opportunity,
   OpportunityActionResult,
   OpportunityDashboardPayload,
+  OpportunityFollowUpReport as OpportunityFollowUpReportRecord,
   OpportunityStatus,
 } from "@/lib/opportunities/types";
 import { OpportunityDashboardGate } from "./opportunity-dashboard-gate";
 import { OpportunityDashboardList } from "./opportunity-dashboard-list";
 import { OpportunityForm } from "./opportunity-form";
+import { OpportunityFollowUpReport } from "./opportunity-follow-up-report";
 import { OpportunitySettings } from "./opportunity-settings";
 
 const TOKEN_KEY = OPPORTUNITY_DASHBOARD_TOKEN_KEY;
@@ -22,7 +27,7 @@ const TOKEN_KEY = OPPORTUNITY_DASHBOARD_TOKEN_KEY;
 // What is live is what a leader checks first; drafts are a working state.
 const DEFAULT_TAB = "published" as const;
 
-type Screen = OpportunityStatus | "settings" | "form";
+type Screen = OpportunityStatus | "settings" | "form" | "followups";
 
 export function OpportunityDashboard() {
   const [token, setToken] = useState<string | null>(null);
@@ -31,6 +36,9 @@ export function OpportunityDashboard() {
   );
   const [screen, setScreen] = useState<Screen>(DEFAULT_TAB);
   const [editing, setEditing] = useState<Opportunity | null>(null);
+  const [followUpReports, setFollowUpReports] = useState<
+    OpportunityFollowUpReportRecord[]
+  >([]);
   const [notice, setNotice] = useState("");
   const [gateNotice, setGateNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,6 +48,7 @@ export function OpportunityDashboard() {
     sessionStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setPayload(null);
+    setFollowUpReports([]);
     setGateNotice(message);
   }, []);
 
@@ -170,6 +179,21 @@ export function OpportunityDashboard() {
     );
   }
 
+  if (screen === "followups") {
+    return (
+      <ShellWithMenus active="opportunities">
+        <main className="bulletin-page">
+          <div className="bulletin-shell">
+            <OpportunityFollowUpReport
+              reports={followUpReports}
+              onBack={() => setScreen(DEFAULT_TAB)}
+            />
+          </div>
+        </main>
+      </ShellWithMenus>
+    );
+  }
+
   const counts = {
     published: payload.opportunities.filter((o) => o.status === "published")
       .length,
@@ -185,6 +209,18 @@ export function OpportunityDashboard() {
     setNotice("");
     setEditing(null);
     setScreen("form");
+  };
+
+  const openFollowUpReports = async () => {
+    setNotice("");
+    const reports = await run(() =>
+      getOpportunityFollowUpReportsAction(token),
+    );
+
+    if (reports) {
+      setFollowUpReports(reports);
+      setScreen("followups");
+    }
   };
 
   return (
@@ -218,6 +254,14 @@ export function OpportunityDashboard() {
           >
             Settings
           </button>
+          <button
+            className="bulletin-secondary-full"
+            type="button"
+            onClick={openFollowUpReports}
+            disabled={busy}
+          >
+            Follow-up reports
+          </button>
         </>
       }
     >
@@ -245,6 +289,14 @@ export function OpportunityDashboard() {
               }}
             >
               Settings
+            </button>
+            <button
+              className="bulletin-secondary-full opportunity-follow-up-dashboard-link"
+              type="button"
+              onClick={openFollowUpReports}
+              disabled={busy}
+            >
+              Follow-up reports
             </button>
           </div>
           <OpportunityDashboardList

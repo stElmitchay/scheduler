@@ -1,4 +1,5 @@
 import { buildOpportunityShareUrl } from "@/lib/opportunities/share-url";
+import Link from "next/link";
 import type {
   Opportunity,
   OpportunityBoardSettings,
@@ -121,6 +122,14 @@ export function OpportunityDetail({
           >
             Need help
           </a>
+        ) : null}
+        {opportunity.kind === "job" || opportunity.kind === "internship" ? (
+          <Link
+            className="bulletin-secondary-full opportunity-action-link"
+            href={`/opportunities/follow-up?opportunity=${encodeURIComponent(opportunity.slug)}`}
+          >
+            Update your application
+          </Link>
         ) : null}
       </div>
     </article>
